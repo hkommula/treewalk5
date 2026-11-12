@@ -1,0 +1,269 @@
+/* Native MapLibre rendering. Routing and device permissions stay in the app.
+ * All app geometry enters as GeoJSON (longitude, latitude); focus() accepts the
+ * existing [latitude, longitude] convention at the camera boundary only.
+ */
+(function(root,factory){
+    const api=factory();
+    if(typeof module==='object'&&module.exports)module.exports=api;
+    else root.CampusMap=api.CampusMap;
+})(typeof globalThis!=='undefined'?globalThis:this,function(){
+    'use strict';
+    const MAP_SETTINGS_KEY='uowTreeWalkMapSettingsV1';
+    const BASEMAPS={
+        dark:{label:'Dark',url:'https://tiles.openfreemap.org/styles/dark'},
+        light:{label:'Light / Outdoor',url:'https://tiles.openfreemap.org/styles/positron'},
+        aerial:{label:'Aerial',tiles:['https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_Imagery/MapServer/tile/{z}/{y}/{x}']}
+    };
+    const GLYPHS='https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf';
+    const empty=()=>({type:'FeatureCollection',features:[]});
+    const collection=features=>({type:'FeatureCollection',features});
+    const point=(coordinates,properties={},id)=>({type:'Feature',...(id===undefined?{}:{id}),geometry:{type:'Point',coordinates},properties});
+    const line=(coordinates,properties={})=>({type:'Feature',geometry:{type:'LineString',coordinates},properties});
+    function prepareBuildings(data){
+        return collection((data?.features||[]).filter(f=>['Polygon','MultiPolygon'].includes(f.geometry?.type)).map(f=>{
+            const levels=parseFloat(f.properties?.['building:levels']);
+            const measured=parseFloat(f.properties?.height);
+            // Approximation: 3 m per level, or 9 m (three storeys) if unknown.
+            // "ele" is ground elevation, not the building's height.
+            const height=measured>0?measured:levels>0?levels*3:9;
+            return {...f,properties:{...f.properties,map_height:Math.min(150,height),height_estimated:!(measured>0),height_basis:measured>0?'height':levels>0?'levels × 3 m':'default 9 m'}};
+        }));
+    }
+    function destination(location,metres,bearing){
+        const r=Math.PI/180,d=metres/6371000,lat=location.lat*r,lng=location.lng*r,b=bearing*r;
+        const y=Math.asin(Math.sin(lat)*Math.cos(d)+Math.cos(lat)*Math.sin(d)*Math.cos(b));
+        const x=lng+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(lat),Math.cos(d)-Math.sin(lat)*Math.sin(y));
+        return [x/r,y/r];
+    }
+    function gpsFeatures(location,heading){
+        if(!location)return empty();
+        const coords=[location.lng,location.lat],features=[point(coords,{kind:'position'})];
+        if(Number.isFinite(location.accuracy)&&location.accuracy>0){
+            const ring=Array.from({length:33},(_,i)=>destination(location,location.accuracy,i*360/32));
+            ring[ring.length-1]=[...ring[0]];
+            features.push({type:'Feature',geometry:{type:'Polygon',coordinates:[ring]},properties:{kind:'accuracy'}});
+        }
+        if(Number.isFinite(heading)){
+            const arc=Array.from({length:9},(_,i)=>destination(location,28,heading-24+i*6));
+            features.push({type:'Feature',geometry:{type:'Polygon',coordinates:[[coords,...arc,coords]]},properties:{kind:'heading'}});
+        }
+        return collection(features);
+    }
+    function aerialStyle(){
+        return {version:8,glyphs:GLYPHS,sources:{'nsw-imagery':{type:'raster',tiles:BASEMAPS.aerial.tiles,tileSize:256,maxzoom:19,
+            attribution:'Imagery © <a href="https://data.nsw.gov.au/data/dataset/nsw-imagery" target="_blank" rel="noopener">NSW Spatial Services</a> / Department of Customer Service 2020; AAM, Jacobs Ausimage, LANDSAT'}},
+        layers:[{id:'background',type:'background',paint:{'background-color':'#13202a'}},{id:'nsw-imagery',type:'raster',source:'nsw-imagery',paint:{'raster-fade-duration':0}}]};
+    }
+    class CampusMap {
+        constructor(options={}){
+            this.options=options;this.map=null;this.ready=false;this.contextLost=false;
+            this.data=new Map();this.signatures=new Map();this.treeStates=new Map();this.settings={basemap:'dark',threeD:false};
+            this.lastBasemap='dark';this.epoch=0;this.styleAbort=null;this.styleCache=new Map();this.endpointLabels=false;
+            this.pathsVisible=true;this.repeatVisible=true;this.lastErrorAt=0;
+            try{
+                const saved=JSON.parse(localStorage.getItem(MAP_SETTINGS_KEY)||'null');
+                if(saved&&BASEMAPS[saved.basemap])this.settings.basemap=saved.basemap;
+                else if(options.outdoor)this.settings.basemap='light';
+                this.settings.threeD=saved?.threeD===true;
+            }catch{}
+            this.basemap=this.settings.basemap;
+            try{
+                if(typeof maplibregl==='undefined')throw Error('The map library could not load.');
+                maplibregl.setWorkerCount(Math.min(2,navigator.hardwareConcurrency||2));
+                this.map=new maplibregl.Map({container:options.container||'map',center:[options.center[1],options.center[0]],zoom:17,
+                    minZoom:15,maxZoom:19,maxPitch:60,renderWorldCopies:false,trackResize:false,
+                    attributionControl:false,pixelRatio:Math.min(window.devicePixelRatio||1,navigator.deviceMemory<=4?1.5:2),
+                    canvasContextAttributes:{antialias:false},fadeDuration:100,
+                    style:{version:8,glyphs:GLYPHS,sources:{},layers:[{id:'background',type:'background',paint:{'background-color':'#0d1117'}}]}});
+                this.map.addControl(new maplibregl.AttributionControl({compact:false}),'bottom-left');
+                this.map.on('style.load',()=>{
+                    this.ready=true;this.installLayers();
+                    if(this.recovering){this.recovering=false;this.hideFallback();}
+                });
+                this.map.once('load',()=>{this.set3D(this.settings.threeD,false);this.setBasemap(this.basemap);});
+                this.map.on('sourcedata',e=>{if(e.sourceId==='uow-trees'&&e.isSourceLoaded)this.applyTreeStates();});
+                this.map.on('click',e=>this.handleClick(e));
+                this.map.on('mousemove',e=>{
+                    if(this.hoverFrame)return;
+                    this.hoverFrame=requestAnimationFrame(()=>{this.hoverFrame=null;if(this.ready&&!this.contextLost)this.map.getCanvas().style.cursor=this.hitFeatures(e.point).length?'pointer':'';});
+                });
+                this.map.on('rotateend',()=>{if(!this.settings.threeD&&this.map.getBearing()!==0)this.map.jumpTo({bearing:0,pitch:0});});
+                this.map.on('webglcontextlost',e=>{
+                    e.originalEvent?.preventDefault();this.contextLost=true;this.ready=false;
+                    this.map.stop();this.showFallback('The map paused because graphics became unavailable. Your trees and saved walk are still available.');
+                });
+                this.map.on('webglcontextrestored',()=>{
+                    // MapLibre rebuilds its Style asynchronously after a lost context.
+                    // Native addSource/addLayer must wait for style.load, not merely
+                    // the canvas context-restored event.
+                    this.contextLost=false;this.ready=false;this.recovering=true;
+                    const finish=()=>{
+                        if(this.recovering&&!this.contextLost&&this.map.isStyleLoaded()){
+                            this.ready=true;this.installLayers();this.recovering=false;this.hideFallback();
+                        }
+                    };
+                    this.map.once('idle',finish);requestAnimationFrame(finish);this.map.triggerRepaint();
+                });
+                this.map.on('error',e=>{
+                    if(Date.now()-this.lastErrorAt>30000){this.lastErrorAt=Date.now();this.notice('Some map data could not load. Campus trees and loaded paths remain available.');}
+                    options.onError?.(e.error);
+                });
+            }catch(error){
+                this.showFallback('The map needs WebGL graphics support. You can still browse trees, start a walk and save your progress.');
+            }
+        }
+        notice(message){
+            const status=typeof document!=='undefined'&&document.getElementById('app-status');
+            if(this.options.onNotice)this.options.onNotice(message);else if(status)status.textContent=message;
+        }
+        showFallback(message){
+            this.unavailable=true;
+            const fallback=document.getElementById('map-fallback');
+            if(fallback){fallback.hidden=false;fallback.querySelector('p').textContent=message;}
+            document.body.classList.add('map-unavailable');
+            window.dispatchEvent(new CustomEvent('treewalk:mapavailability',{detail:{available:false}}));
+        }
+        hideFallback(){this.unavailable=false;const fallback=document.getElementById('map-fallback');if(fallback)fallback.hidden=true;document.body.classList.remove('map-unavailable');window.dispatchEvent(new CustomEvent('treewalk:mapavailability',{detail:{available:true}}));}
+        saveSettings(){try{localStorage.setItem(MAP_SETTINGS_KEY,JSON.stringify(this.settings));}catch{}}
+        emitSettings(){window.dispatchEvent(new CustomEvent('treewalk:mapsettings',{detail:{...this.settings}}));}
+        async setBasemap(mode){
+            if(!BASEMAPS[mode]||!this.map||this.contextLost)return false;
+            const epoch=++this.epoch;this.styleAbort?.abort();this.styleAbort=new AbortController();
+            const controller=this.styleAbort;
+            const timeout=setTimeout(()=>controller.abort(),12000);
+            try{
+                let style=this.styleCache.get(mode);
+                if(!style){
+                    if(mode==='aerial')style=aerialStyle();
+                    else{
+                        const response=await fetch(BASEMAPS[mode].url,{signal:this.styleAbort.signal});
+                        if(!response.ok)throw Error('Style unavailable');
+                        style=await response.json();
+                        // Campus geometry is the sole 3D building source.
+                        style.layers=style.layers.filter(layer=>layer.type!=='fill-extrusion');
+                    }
+                    this.styleCache.set(mode,style);
+                }
+                if(epoch!==this.epoch)return false;
+                this.basemap=mode;this.settings.basemap=mode;this.lastBasemap=mode==='aerial'?this.lastBasemap:mode;
+                this.ready=false;
+                this.map.setStyle(structuredClone(style),{diff:false});
+                this.saveSettings();this.emitSettings();return true;
+            }catch(error){
+                if(epoch===this.epoch){this.settings.basemap=this.basemap;this.emitSettings();this.notice('Basemap unavailable. Try again or choose another map; campus data and your walk are retained.');}
+                return false;
+            }finally{clearTimeout(timeout);}
+        }
+        set3D(enabled,animate=true){
+            this.settings.threeD=!!enabled&&!!this.map&&!this.contextLost;
+            if(this.map){
+                if(this.settings.threeD){this.map.dragRotate.enable();this.map.touchZoomRotate.enableRotation();this.map.touchPitch.enable();this.map.keyboard.enableRotation();}
+                else{this.map.dragRotate.disable();this.map.touchZoomRotate.disableRotation();this.map.touchPitch.disable();this.map.keyboard.disableRotation();}
+                const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                this.map.easeTo({pitch:this.settings.threeD?48:0,bearing:this.settings.threeD?this.map.getBearing():0,duration:animate&&!reduce?450:0});
+                this.setVisibility('uow-buildings-3d',this.settings.threeD);
+                this.setVisibility('uow-buildings-fill',!this.settings.threeD);
+            }
+            this.saveSettings();this.emitSettings();
+        }
+        resize(){if(this.map&&!this.contextLost)this.map.resize();}
+        getZoom(){return this.map?.getZoom()??18;}
+        focus(latlng,zoom,padding,options={}){
+            if(!this.map||this.contextLost)return;
+            const duration=options.animate===false||window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:(options.duration??.4)*1000;
+            this.map.easeTo({center:[latlng[1],latlng[0]],zoom:zoom??this.getZoom(),padding,retainPadding:false,duration});
+        }
+        fitBounds(bounds,padding,options={}){
+            if(!this.map||this.contextLost)return;
+            this.map.fitBounds(bounds,{padding,retainPadding:false,maxZoom:options.maxZoom??19,bearing:this.map.getBearing(),pitch:this.map.getPitch(),duration:options.animate===false?0:400});
+        }
+        project(latlng){return this.map?.project([latlng[1],latlng[0]])||{x:0,y:0};}
+        setData(id,data,sourceOptions={}){
+            const signature=JSON.stringify(data);
+            if(this.signatures.get(id)===signature)return;
+            this.signatures.set(id,signature);this.data.set(id,{data,sourceOptions});
+            if(!this.ready||this.contextLost)return;
+            const source=this.map.getSource(id);
+            if(source)source.setData(data);
+            else this.map.addSource(id,{type:'geojson',data,...sourceOptions});
+        }
+        setPaths(data){this.setData('uow-paths',data);}
+        setBuildings(data){this.setData('uow-buildings',prepareBuildings(data));}
+        setTrees(trees){
+            this.setData('uow-trees',collection(trees.map(t=>point([t.lng,t.lat],{id:t.id,name:t.name},t.id))),{cluster:true,clusterMaxZoom:17,clusterRadius:35});
+        }
+        setTreeState(id,state){this.treeStates.set(id,state);if(this.ready&&this.map.getSource('uow-trees'))this.map.setFeatureState({source:'uow-trees',id},state);}
+        applyTreeStates(){if(!this.ready||this.contextLost||!this.map.getSource('uow-trees'))return;for(const [id,state]of this.treeStates)this.map.setFeatureState({source:'uow-trees',id},state);}
+        setRoute(route){
+            for(const [id,data]of Object.entries(route))this.setData(`uow-${id}`,data);
+        }
+        setNearbyLabels(features){this.setData('uow-nearby',collection(features));}
+        setGPS(location,heading){
+            if(!location){clearTimeout(this.gpsTimer);this.pendingGPS=null;this.setData('uow-gps',empty());return;}
+            const now=performance.now(),newFix=location.timestamp!==this.lastFixTimestamp;
+            this.pendingGPS={location:{...location},heading};
+            const flush=()=>{
+                clearTimeout(this.gpsTimer);this.gpsTimer=null;
+                if(!this.pendingGPS)return;
+                const value=this.pendingGPS;this.pendingGPS=null;this.lastGPSRender=performance.now();this.lastFixTimestamp=value.location.timestamp;
+                this.setData('uow-gps',gpsFeatures(value.location,value.heading));
+            };
+            if(newFix||now-(this.lastGPSRender||0)>=150)flush();
+            else if(!this.gpsTimer)this.gpsTimer=setTimeout(flush,150-(now-this.lastGPSRender));
+        }
+        setVisibility(id,visible){if(this.ready&&this.map.getLayer(id))this.map.setLayoutProperty(id,'visibility',visible?'visible':'none');}
+        setPathsVisible(value){this.pathsVisible=value;this.setVisibility('uow-paths-line',value);}
+        setRepeatVisible(value){this.repeatVisible=value;for(const id of ['uow-repeats-line','uow-repeat-labels'])this.setVisibility(id,value);}
+        showEndpointLabels(value){this.endpointLabels=value;this.setVisibility('uow-endpoint-labels',value);}
+        installLayers(){
+            if(!this.map||this.contextLost)return;
+            this.ready=true;
+            const sourceIds=['paths','buildings','trees','route-network','route-direct','repeats','repeat-labels','endpoints','nearby','gps'];
+            for(const suffix of sourceIds){
+                const id=`uow-${suffix}`,cached=this.data.get(id);
+                if(!this.map.getSource(id))this.map.addSource(id,{type:'geojson',data:cached?.data||empty(),...(cached?.sourceOptions||{}),...(suffix==='trees'?{cluster:true,clusterMaxZoom:17,clusterRadius:35}:{})});
+                else if(cached)this.map.getSource(id).setData(cached.data);
+            }
+            const light=this.basemap==='light',text=light?'#14202c':'#f4f7fa',halo=light?'#fff':'#111923';
+            const add=layer=>{if(!this.map.getLayer(layer.id))this.map.addLayer(layer);};
+            add({id:'uow-buildings-fill',type:'fill',source:'uow-buildings',paint:{'fill-color':'#005eb8','fill-opacity':light?.15:.18}});
+            add({id:'uow-buildings-line',type:'line',source:'uow-buildings',paint:{'line-color':'#378ad6','line-width':1,'line-opacity':.65}});
+            add({id:'uow-buildings-3d',type:'fill-extrusion',source:'uow-buildings',paint:{'fill-extrusion-color':light?'#86a9c5':'#264f75','fill-extrusion-height':['get','map_height'],'fill-extrusion-base':0,'fill-extrusion-opacity':.85,'fill-extrusion-vertical-gradient':true}});
+            add({id:'uow-paths-line',type:'line',source:'uow-paths',paint:{'line-color':light?'#236744':'#60bca0','line-width':1.25,'line-opacity':light?.5:.28}});
+            add({id:'uow-route-halo',type:'line',source:'uow-route-network',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':halo,'line-width':6,'line-opacity':.8}});
+            add({id:'uow-route-network-line',type:'line',source:'uow-route-network',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':light?'#c01936':'#ff5674','line-width':3.5,'line-opacity':.95}});
+            add({id:'uow-route-direct-line',type:'line',source:'uow-route-direct',paint:{'line-color':light?'#892344':'#ffb3c0','line-width':2,'line-dasharray':[2,3],'line-opacity':.85}});
+            add({id:'uow-repeats-line',type:'line',source:'uow-repeats',paint:{'line-color':'#3297e6','line-width':7,'line-opacity':.28}});
+            add({id:'uow-repeat-labels',type:'symbol',source:'uow-repeat-labels',layout:{'text-field':['get','label'],'text-font':['Noto Sans Regular'],'text-size':11,'text-padding':12},paint:{'text-color':text,'text-halo-color':'#005eb8','text-halo-width':3}});
+            add({id:'uow-endpoints-circle',type:'circle',source:'uow-endpoints',paint:{'circle-radius':10,'circle-color':['get','color'],'circle-opacity':.45,'circle-stroke-width':2,'circle-stroke-color':'#fff','circle-pitch-alignment':'viewport'}});
+            add({id:'uow-endpoint-labels',type:'symbol',source:'uow-endpoints',layout:{'text-field':['get','label'],'text-font':['Noto Sans Regular'],'text-size':12,'text-offset':[0,-1.5]},paint:{'text-color':text,'text-halo-color':halo,'text-halo-width':2}});
+            add({id:'uow-clusters',type:'circle',source:'uow-trees',filter:['has','point_count'],paint:{'circle-color':'#c71935','circle-radius':['step',['get','point_count'],15,10,19,30,23],'circle-opacity':.95,'circle-stroke-color':'#fff','circle-stroke-width':1.5,'circle-pitch-alignment':'viewport'}});
+            add({id:'uow-tree-halo',type:'circle',source:'uow-trees',filter:['!',['has','point_count']],paint:{'circle-radius':['case',['boolean',['feature-state','active'],false],12,7],'circle-color':['case',['boolean',['feature-state','active'],false],'#f1d74f','#e51937'],'circle-opacity':['case',['boolean',['feature-state','active'],false],.4,.12],'circle-pitch-alignment':'viewport'}});
+            add({id:'uow-tree-points',type:'circle',source:'uow-trees',filter:['!',['has','point_count']],paint:{'circle-radius':['case',['boolean',['feature-state','active'],false],7,5],'circle-color':['case',['boolean',['feature-state','active'],false],'#f3dc4c',['boolean',['feature-state','visited'],false],'#2ea043','#e51937'],'circle-stroke-color':'#fff','circle-stroke-width':1.7,'circle-pitch-alignment':'viewport','circle-pitch-scale':'viewport'}});
+            add({id:'uow-cluster-counts',type:'symbol',source:'uow-trees',filter:['has','point_count'],layout:{'text-field':['get','point_count_abbreviated'],'text-font':['Noto Sans Regular'],'text-size':13,'text-allow-overlap':true},paint:{'text-color':'#fff'}});
+            add({id:'uow-nearby-labels',type:'symbol',source:'uow-nearby',layout:{'text-field':['get','label'],'text-font':['Noto Sans Regular'],'text-size':13,'text-variable-anchor':['top','bottom','left','right'],'text-radial-offset':1.1,'text-padding':8},paint:{'text-color':text,'text-halo-color':halo,'text-halo-width':2}});
+            add({id:'uow-gps-accuracy',type:'fill',source:'uow-gps',filter:['==','kind','accuracy'],paint:{'fill-color':'#238bff','fill-opacity':.1}});
+            add({id:'uow-gps-accuracy-line',type:'line',source:'uow-gps',filter:['==','kind','accuracy'],paint:{'line-color':'#238bff','line-width':1,'line-opacity':.45}});
+            add({id:'uow-gps-heading',type:'fill',source:'uow-gps',filter:['==','kind','heading'],paint:{'fill-color':'#48a2ff','fill-opacity':.35}});
+            add({id:'uow-gps-point',type:'circle',source:'uow-gps',filter:['==','kind','position'],paint:{'circle-radius':7,'circle-color':'#005eb8','circle-stroke-width':3,'circle-stroke-color':'#fff','circle-pitch-alignment':'viewport','circle-pitch-scale':'viewport'}});
+            this.applyTreeStates();this.setPathsVisible(this.pathsVisible);this.setRepeatVisible(this.repeatVisible);this.showEndpointLabels(this.endpointLabels);
+            this.setVisibility('uow-buildings-3d',this.settings.threeD);this.setVisibility('uow-buildings-fill',!this.settings.threeD);
+        }
+        hitFeatures(pointValue){
+            const layers=['uow-tree-points','uow-clusters','uow-endpoints-circle'].filter(id=>this.map.getLayer(id));
+            return layers.length?this.map.queryRenderedFeatures(pointValue,{layers}):[];
+        }
+        async handleClick(event){
+            if(!this.ready||this.contextLost)return;
+            const features=this.hitFeatures(event.point),first=features[0];
+            if(!first){this.options.onMapClick?.(event);return;}
+            if(first.properties.cluster){
+                try{
+                    const source=this.map.getSource('uow-trees'),zoom=await source.getClusterExpansionZoom(first.properties.cluster_id);
+                    this.map.easeTo({center:first.geometry.coordinates,zoom:Math.min(19,zoom),duration:300});
+                }catch{}
+            }else this.options.onTreeClick?.(Number(first.properties.id));
+        }
+    }
+    return {CampusMap,prepareBuildings,gpsFeatures,BASEMAPS,aerialStyle,point,line,collection};
+});

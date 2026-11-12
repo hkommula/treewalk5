@@ -1,0 +1,529 @@
+/**
+ * Leaflet SimpleLocate v2 - A lightweight geolocation helper for Leaflet.
+ * Provides user location tracking, heading/orientation, and accuracy display.
+ */
+
+(function(global, factory) {
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = factory(require('leaflet'));
+    } else if (typeof define === 'function' && define.amd) {
+        define(['leaflet'], factory);
+    } else {
+        global.SimpleLocate = factory(global.L);
+    }
+}(typeof self !== 'undefined' ? self : this, function(L) {
+    'use strict';
+
+    const SimpleLocate = L.Control.extend({
+        options: {
+            position: 'topright',
+            className: 'button-locate',
+            button: null,
+            drawMarker: true,
+            drawAccuracy: true,
+            drawOrientation: true,
+            markerColor: '#005EB8',
+            markerSize: 24,
+            orientationSize: 96,
+            accuracyColor: '#005EB8',
+            accuracyFillColor: '#005EB8',
+            accuracyFillOpacity: 0.1,
+            accuracyWeight: 1.5,
+            minAngleChange: 3,
+            zIndexOffset: 1000,
+            highAccuracy: true,
+            timeout: 15000,
+            maximumAge: 5000,
+            geofenceRadius: 2000,
+            geofenceCenter: null,
+            onLocationFound: null,
+            onHeadingChanged: null,
+            onLocationError: null,
+            onGeofenceViolation: null
+        },
+
+        initialize: function(options) {
+            L.Util.setOptions(this, options);
+            this.tracking = false;
+            this.userMarker = null;
+            this.accuracyCircle = null;
+            this.watchId = null;
+            this.userLocation = null;
+            this.heading = null;
+            this._button = null;
+            this._container = null;
+            this._boundButton = null;
+            this._boundClick = null;
+            this._boundOrientation = null;
+            this._styleInjected = false;
+        },
+
+        onAdd: function(map) {
+            this.map = map;
+            this._createButton();
+            this._injectStyles();
+            return this._container;
+        },
+
+        onRemove: function() {
+            this._stopTracking();
+            this._unbindButton();
+        },
+
+        attachTo: function(map) {
+            this.map = map;
+            if (this.options.button) this._bindButton(this.options.button);
+            this._injectStyles();
+            return this;
+        },
+
+        start: function() {
+            this._startTracking();
+            return this;
+        },
+
+        stop: function() {
+            this._stopTracking();
+            return this;
+        },
+
+        toggle: function() {
+            this._toggle();
+            return this;
+        },
+
+        isTracking: function() {
+            return this.tracking;
+        },
+
+        getLocation: function() {
+            return this.userLocation;
+        },
+
+        getHeading: function() {
+            return this.tracking && Date.now() - (this._headingAt || 0) < 10000 ? this.heading : null;
+        },
+
+        setGeofenceCenter: function(latlng) {
+            this.options.geofenceCenter = [latlng.lat || latlng[0], latlng.lng || latlng[1]];
+            return this;
+        },
+
+        _createButton: function() {
+            if (this.options.button) {
+                this._container = L.DomUtil.create('div', 'simple-locate-external-control');
+                this._container.style.display = 'none';
+                this._bindButton(this.options.button);
+                return this._container;
+            }
+
+            this._container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            this._button = L.DomUtil.create('button', this.options.className, this._container);
+            this._button.innerHTML = '<i class="bi bi-crosshair"></i>';
+            this._button.title = 'Track my location';
+            this._button.setAttribute('aria-label', 'Track my location');
+            this._statusLight = L.DomUtil.create('span', 'gps-status-light', this._button);
+            this._bindButton(this._button);
+            return this._container;
+        },
+
+        _resolveButton: function(button) {
+            if (typeof button === 'string') return document.querySelector(button);
+            return button;
+        },
+
+        _bindButton: function(button) {
+            const resolvedButton = this._resolveButton(button);
+            if (!resolvedButton || this._boundButton === resolvedButton) return;
+
+            this._unbindButton();
+            this._button = resolvedButton;
+            this._boundButton = resolvedButton;
+            this._statusLight = resolvedButton.querySelector('.gps-status-light');
+            if (!this._statusLight) {
+                this._statusLight = L.DomUtil.create('span', 'gps-status-light', resolvedButton);
+            }
+
+            this._boundClick = (event) => {
+                L.DomEvent.preventDefault(event);
+                L.DomEvent.stopPropagation(event);
+                this._toggle();
+            };
+            L.DomEvent.on(resolvedButton, 'click', this._boundClick);
+            L.DomEvent.disableClickPropagation(resolvedButton);
+        },
+
+        _unbindButton: function() {
+            if (this._boundButton && this._boundClick) {
+                L.DomEvent.off(this._boundButton, 'click', this._boundClick);
+            }
+            this._boundButton = null;
+            this._boundClick = null;
+        },
+
+        _toggle: function() {
+            if (this.tracking) {
+                this._stopTracking();
+            } else {
+                this._startTracking();
+            }
+        },
+
+        _startTracking: function() {
+            if (this.tracking) return;
+            if (!navigator.geolocation) {
+                this._handleError({ message: 'Geolocation not supported.' });
+                return;
+            }
+
+            this.tracking = true;
+            this._updateButtonState('locating');
+            this._startOrientationWatch();
+
+            this.watchId = navigator.geolocation.watchPosition(
+                (position) => this._onLocationFound(position),
+                (error) => this._onLocationError(error),
+                {
+                    enableHighAccuracy: this.options.highAccuracy,
+                    timeout: this.options.timeout,
+                    maximumAge: this.options.maximumAge
+                }
+            );
+        },
+
+        _stopTracking: function() {
+            const wasTracking = this.tracking || this.watchId !== null || this.userMarker || this.accuracyCircle;
+            this.tracking = false;
+            this._updateButtonState('off');
+            this.userLocation = null;
+            this.heading = null;
+
+            if (this.watchId !== null) {
+                navigator.geolocation.clearWatch(this.watchId);
+                this.watchId = null;
+            }
+            this._stopOrientationWatch();
+
+            if (this.userMarker) {
+                this.map.removeLayer(this.userMarker);
+                this.userMarker = null;
+            }
+            if (this.accuracyCircle) {
+                this.map.removeLayer(this.accuracyCircle);
+                this.accuracyCircle = null;
+            }
+
+            if (wasTracking && typeof this.options.onLocationError === 'function') {
+                this.options.onLocationError({ type: 'stopped' });
+            }
+        },
+
+        _onLocationFound: function(position) {
+            this.userLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+                heading: this.heading,
+                timestamp: position.timestamp
+            };
+
+            if (this.options.geofenceCenter && this.options.geofenceRadius) {
+                const distance = this._getDistance(
+                    this.userLocation.lat,
+                    this.userLocation.lng,
+                    this.options.geofenceCenter[0],
+                    this.options.geofenceCenter[1]
+                );
+
+                if (distance > this.options.geofenceRadius) {
+                    if (typeof this.options.onGeofenceViolation === 'function') {
+                        this.options.onGeofenceViolation({
+                            distance: distance,
+                            limit: this.options.geofenceRadius,
+                            location: this.userLocation
+                        });
+                    }
+                    this._stopTracking();
+                    return;
+                }
+            }
+
+            this._updateButtonState('active');
+            this._updateUserMarker();
+
+            if (typeof this.options.onLocationFound === 'function') {
+                this.options.onLocationFound(this.userLocation);
+            }
+        },
+
+        _onLocationError: function(error) {
+            // A timeout or temporarily unavailable fix can recover on the same watch.
+            if (error.code !== 1) {
+                this._updateButtonState('locating');
+                if (typeof this.options.onLocationError === 'function') this.options.onLocationError(error);
+                return;
+            }
+            this.tracking = false;
+            this._updateButtonState('off');
+            this.userLocation = null;
+            this.heading = null;
+
+            if (this.watchId !== null) {
+                navigator.geolocation.clearWatch(this.watchId);
+                this.watchId = null;
+            }
+            this._stopOrientationWatch();
+
+            if (this.userMarker) {
+                this.map.removeLayer(this.userMarker);
+                this.userMarker = null;
+            }
+            if (this.accuracyCircle) {
+                this.map.removeLayer(this.accuracyCircle);
+                this.accuracyCircle = null;
+            }
+
+            if (typeof this.options.onLocationError === 'function') {
+                this.options.onLocationError(error);
+            }
+        },
+
+        _handleError: function(error) {
+            this._updateButtonState('off');
+            if (typeof this.options.onLocationError === 'function') {
+                this.options.onLocationError(error);
+            }
+        },
+
+        _updateUserMarker: function() {
+            if (!this.map || !this.userLocation) return;
+            this._injectStyles();
+
+            const latlng = [this.userLocation.lat, this.userLocation.lng];
+            if (this.options.drawAccuracy && Number.isFinite(this.userLocation.accuracy)) {
+                if (!this.accuracyCircle) {
+                    this.accuracyCircle = L.circle(latlng, {
+                        radius: this.userLocation.accuracy,
+                        color: this.options.accuracyColor,
+                        weight: this.options.accuracyWeight,
+                        fillColor: this.options.accuracyFillColor,
+                        fillOpacity: this.options.accuracyFillOpacity,
+                        className: 'leaflet-simple-locate-circle',
+                        interactive: false
+                    }).addTo(this.map);
+                } else {
+                    this.accuracyCircle
+                        .setLatLng(latlng)
+                        .setRadius(this.userLocation.accuracy);
+                }
+            } else if (this.accuracyCircle) {
+                this.map.removeLayer(this.accuracyCircle);
+                this.accuracyCircle = null;
+            }
+
+            if (!this.options.drawMarker) return;
+
+            const heading = this.getHeading();
+            const iconName = this.options.drawOrientation && Number.isFinite(heading) ? 'orientation' : 'geolocation';
+            const icon = !this.userMarker || this.userMarker.iconName !== iconName
+                ? (iconName === 'orientation' ? this._createOrientationIcon() : this._createGeolocationIcon()) : null;
+
+            if (!this.userMarker) {
+                this.userMarker = L.marker(latlng, {
+                    icon: icon,
+                    interactive: false,
+                    zIndexOffset: this.options.zIndexOffset
+                }).addTo(this.map);
+                this.userMarker.iconName = iconName;
+            } else {
+                this.userMarker.setLatLng(latlng);
+                if (this.userMarker.iconName !== iconName) {
+                    this.userMarker.setIcon(icon);
+                    this.userMarker.iconName = iconName;
+                }
+            }
+            this._updateMarkerHeading();
+        },
+
+        _createGeolocationIcon: function() {
+            const size = this.options.markerSize;
+            const color = this.options.markerColor;
+            return L.divIcon({
+                className: 'leaflet-simple-locate-icon',
+                iconSize: [size, size],
+                iconAnchor: [size / 2, size / 2],
+                html:
+                    '<svg width="24" height="24" viewBox="-12 -12 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style="--simple-locate-color:' + color + '">' +
+                        '<defs><filter id="leaflet-simple-locate-gaussian"><feGaussianBlur stdDeviation="0.5" /></filter></defs>' +
+                        '<g id="leaflet-simple-locate-icon-spot">' +
+                            '<circle fill="#000000" style="opacity:0.16;filter:url(#leaflet-simple-locate-gaussian)" cx="1" cy="1" r="10" />' +
+                            '<circle fill="#ffffff" opacity="0.78" r="10" />' +
+                            '<circle r="7" />' +
+                        '</g>' +
+                    '</svg>'
+            });
+        },
+
+        _createOrientationIcon: function() {
+            const size = this.options.orientationSize;
+            const color = this.options.markerColor;
+            return L.divIcon({
+                className: 'leaflet-simple-locate-icon',
+                iconSize: [size, size],
+                iconAnchor: [size / 2, size / 2],
+                html:
+                    '<svg width="96" height="96" viewBox="-48 -48 96 96" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style="--simple-locate-color:' + color + '">' +
+                        '<defs>' +
+                            '<linearGradient id="leaflet-simple-locate-gradient" x2="0" y2="-48" gradientUnits="userSpaceOnUse">' +
+                                '<stop style="stop-opacity:1" offset="0" />' +
+                                '<stop style="stop-opacity:0" offset="1" />' +
+                            '</linearGradient>' +
+                            '<filter id="leaflet-simple-locate-gaussian"><feGaussianBlur stdDeviation="0.5" /></filter>' +
+                        '</defs>' +
+                        '<path class="orientation" opacity="1" style="fill:url(#leaflet-simple-locate-gradient)" d="M -24,-48 H 24 L 10,0 H -10 z">' +
+                        '</path>' +
+                        '<g id="leaflet-simple-locate-icon-spot">' +
+                            '<circle fill="#000000" style="opacity:0.16;filter:url(#leaflet-simple-locate-gaussian)" cx="1" cy="1" r="10" />' +
+                            '<circle fill="#ffffff" opacity="0.78" r="10" />' +
+                            '<circle r="7" />' +
+                        '</g>' +
+                    '</svg>'
+            });
+        },
+
+        _updateMarkerHeading: function() {
+            const heading = this.heading;
+            const value = Number.isFinite(heading) ? `${-heading}deg` : '0deg';
+            this.map?.getContainer()?.style.setProperty('--leaflet-simple-locate-orientation', value);
+        },
+
+        _startOrientationWatch: function() {
+            if (!this.options.drawOrientation || typeof window === 'undefined' || this._boundOrientation) return;
+            this._boundOrientation = (event) => this._onOrientation(event);
+
+            const orientationEvent = window.DeviceOrientationEvent;
+            if (orientationEvent && typeof orientationEvent.requestPermission === 'function') {
+                orientationEvent.requestPermission()
+                    .then((state) => {
+                        if (state === 'granted' && this._boundOrientation) {
+                            window.addEventListener('deviceorientation', this._boundOrientation, true);
+                        } else {
+                            this._boundOrientation = null;
+                        }
+                    })
+                    .catch(() => {
+                        this._boundOrientation = null;
+                    });
+                return;
+            }
+
+            window.addEventListener('ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation', this._boundOrientation, true);
+        },
+
+        _stopOrientationWatch: function() {
+            if (!this._boundOrientation || typeof window === 'undefined') return;
+            window.removeEventListener('deviceorientationabsolute', this._boundOrientation, true);
+            window.removeEventListener('deviceorientation', this._boundOrientation, true);
+            this._boundOrientation = null;
+        },
+
+        _onOrientation: function(event) {
+            let heading = null;
+            if (Number.isFinite(event.webkitCompassHeading) && (!Number.isFinite(event.webkitCompassAccuracy) || (event.webkitCompassAccuracy >= 0 && event.webkitCompassAccuracy <= 30))) {
+                heading = event.webkitCompassHeading;
+            } else if ((event.absolute === true || event.type === 'deviceorientationabsolute') && Number.isFinite(event.alpha)) {
+                heading = 360 - event.alpha;
+            }
+
+            heading = this._normalizeHeading(heading);
+            if (heading === null) return;
+            if ('orientation' in screen && Number.isFinite(screen.orientation?.angle)) {
+                heading = this._normalizeHeading(heading + screen.orientation.angle);
+            }
+            this._headingAt = Date.now();
+            if (this.heading !== null && Math.abs(((heading - this.heading + 540) % 360) - 180) < this.options.minAngleChange) return;
+
+            this.heading = heading;
+            if (this.userLocation) {
+                this.userLocation.heading = heading;
+                this._updateMarkerHeading();
+                this._updateUserMarker();
+            }
+            if (typeof this.options.onHeadingChanged === 'function') this.options.onHeadingChanged(heading);
+        },
+
+        _normalizeHeading: function(value) {
+            if (value === null || value === undefined) return null;
+            const heading = Number(value);
+            if (!Number.isFinite(heading)) return null;
+            return ((heading % 360) + 360) % 360;
+        },
+
+        _updateButtonState: function(state) {
+            if (!this._button) return;
+            this._button.classList.remove('active', 'locating', 'gps-active');
+
+            if (state === 'locating') {
+                this._button.classList.add('locating');
+            } else if (state === 'active') {
+                this._button.classList.add('gps-active');
+            }
+        },
+
+        _getDistance: function(lat1, lon1, lat2, lon2) {
+            const DEG = Math.PI / 180;
+            const p1 = lat1 * DEG, p2 = lat2 * DEG;
+            const dp = (lat2 - lat1) * DEG, dl = (lon2 - lon1) * DEG;
+            const a = Math.sin(dp/2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) ** 2;
+            return 6371e3 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        },
+
+        _injectStyles: function() {
+            if (this._styleInjected || typeof document === 'undefined') return;
+            if (document.getElementById('simple-locate-v2-style')) {
+                this._styleInjected = true;
+                return;
+            }
+
+            const style = document.createElement('style');
+            style.id = 'simple-locate-v2-style';
+            style.textContent = `
+                .leaflet-simple-locate-icon {
+                    background: transparent;
+                    border: 0;
+                    fill: var(--simple-locate-color, #005EB8);
+                    pointer-events: none !important;
+                    cursor: grab;
+                }
+                .leaflet-simple-locate-icon svg {
+                    overflow: visible;
+                    fill: var(--simple-locate-color, #005EB8);
+                }
+                .leaflet-simple-locate-icon stop {
+                    stop-color: var(--simple-locate-color, #005EB8);
+                }
+                .leaflet-simple-locate-icon .orientation {
+                    transform: rotate(calc(-1 * var(--leaflet-simple-locate-orientation, 0deg)));
+                }
+                .leaflet-simple-locate-circle {
+                    display: var(--leaflet-simple-locate-circle-display, inline);
+                    fill: var(--simple-locate-color, #005EB8);
+                    fill-opacity: .1;
+                    stroke: var(--simple-locate-color, #005EB8);
+                    stroke-width: 1;
+                    stroke-opacity: .16;
+                    pointer-events: none !important;
+                    cursor: grab;
+                }
+                #leaflet-simple-locate-icon-spot {
+                    pointer-events: auto;
+                    cursor: pointer;
+                }
+            `;
+            document.head.appendChild(style);
+            this._styleInjected = true;
+        }
+    });
+
+    return SimpleLocate;
+}));

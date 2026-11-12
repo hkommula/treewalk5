@@ -1,0 +1,35 @@
+/* Original UOW detail card, adapted to available width and user text size. */
+.header-top { display:flex; flex-wrap:wrap; gap:.5rem; }
+.uow-title { flex:1 1 6.5rem; min-inline-size:0; }
+.uow-title-link { font-size:1rem; white-space:normal; }
+.uow-title-link::before { content:'UOW '; }
+.tree-card-open .header-top { display:flex; }
+.tree-card-open .header-stats { display:grid!important; grid-template-columns:repeat(3,minmax(0,1fr)); font-size:.875rem; gap:.4rem; }
+.tree-card-open .stat-item { min-inline-size:0; justify-content:center; font-size:.875rem; }
+.tree-card-open .stat-item i { font-size:.875rem; }
+.tree-card-open .progress-track { display:block; }
+.tree-card-open .detail-nav { display:flex!important; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; margin-bottom:.75rem; }
+.tree-card-open .back-btn { border-radius:2rem; font-size:.875rem; padding:.55rem .75rem; }
+.tree-card-open .detail-mini-coords { flex:1 1 6rem; text-align:end; line-height:1.35; font-size:.875rem; }
+.tree-card-open .detail-head { display:flex!important; align-items:flex-start; gap:.6rem; border-bottom:1px solid var(--border-subtle); padding-bottom:.65rem; margin-bottom:.75rem; }
+.tree-card-open .detail-title { display:block!important; font-size:clamp(1.2rem,5.5cqi,1.6rem); line-height:1.2; font-weight:750; }
+.tree-card-open .detail-sci { font-size:.95rem; line-height:1.35; margin-top:.2rem; }
+.detail-badge { display:block; flex:none; font-size:.875rem; color:#80d89b; background:#163225; border:1px solid #2b6a41; border-radius:2rem; padding:.25rem .55rem; }
+.popup-img-wrap { aspect-ratio:auto; min-block-size:0; block-size:auto; background:var(--card-bg); border-radius:.6rem; }
+.popup-img-hi { position:static; display:block; inline-size:100%; block-size:auto; max-block-size:none; object-fit:contain; }
+.feature-info { background:var(--card-bg); border:1px solid var(--border-subtle); border-radius:.6rem; padding:.75rem; font-size:.95rem; line-height:1.5; }
+.feature-info .about-title { font-size:.875rem; color:var(--text-main); margin:0 0 .55rem; letter-spacing:.025em; font-weight:650; }
+.about-row { display:grid; grid-template-columns:minmax(4rem,.23fr) minmax(0,1fr); gap:.6rem; }
+.about-row+.about-row { margin-top:.5rem; padding-top:.5rem; border-top:1px solid var(--border-subtle); }
+.about-key { font-size:.875rem; color:var(--text-muted); white-space:normal; }
+.about-value { font-size:.95rem; line-height:1.5; color:var(--text-main); }
+.more-info { margin-block:.85rem; }
+.more-info-title { color:var(--text-muted); font-size:.875rem; font-weight:650; }
+.more-info-links { display:flex; flex-wrap:wrap; gap:.4rem; }
+.more-info-link { font-size:.875rem; min-block-size:var(--touch); border-radius:2rem; padding:.5rem .7rem; line-height:1.3; }
+.tree-card-open .popup-btns { display:flex!important; }
+.popup-btns .pb { flex:1; inline-size:100%; font-size:1rem; padding:.8rem; min-block-size:var(--touch); border-radius:.55rem; }
+.pb-visit { background:#237b42; color:#fff; }
+.detail-actions { display:flex; flex-wrap:wrap; gap:.35rem; margin-block:.5rem; }
+.detail-actions .text-btn { flex:1 1 auto; font-size:.875rem; }
+body.outdoor .detail-badge { color:#1c6734; background:#e4f3e9; border-color:#7cbd90; }

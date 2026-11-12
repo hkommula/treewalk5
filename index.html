@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>UOW Campus Tree Walk</title>
+    <link rel="icon" href="src/logo.png">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+
+    <style>
+        :root {
+            --uow-red: #ED0A00; --bg-dark: #001641;
+            --panel-bg: rgba(13,17,23,0.94);
+            --text-main: #e8edf3; --text-muted: #7d8a96; --text-dim: #4e5a66;
+            --accent-green: #2ea043; --accent-blue: #3b82f6;
+            --border-subtle: rgba(255,255,255,0.06); --border-soft: rgba(255,255,255,0.1);
+            --card-bg: rgba(255,255,255,0.025); --card-bg-hover: rgba(255,255,255,0.055);
+            --marker-size: 9px; /* Dynamically controlled by Zoom */
+        }
+        *,*::before,*::after{box-sizing:border-box}
+        body,html{margin:0;padding:0;height:100%;overflow:hidden;
+            font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+            background:var(--bg-dark);color:var(--text-main)}
+        #map{position:absolute;top:0;left:0;width:100vw;height:100vh;z-index:1}
+
+        /* ── Modern Minimalist Panel ── */
+        #ui-panel{
+            position:absolute;top:2vh;left:1vw;
+            width:clamp(320px, 27vw, 390px);height:96vh;
+            background:var(--panel-bg);
+            backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+            border:1px solid var(--border-subtle);border-radius:12px;
+            z-index:1000;display:flex;flex-direction:column;
+            box-shadow:0 16px 48px rgba(0,0,0,0.7),0 0 0 0.5px rgba(255,255,255,0.04);
+            overflow:hidden;
+        }
+
+        /* Mobile Drag Handle */
+        #drag-handle-container {
+            display: none; padding: 12px 0 4px; width: 100%; cursor: grab; touch-action:none; background: rgba(255,255,255,0.015);
+        }
+        #drag-handle-container:active{cursor:grabbing;}
+        #drag-handle {
+            width: 12vw; height: 5px; background: rgba(255,255,255,0.2);
+            border-radius: 4px; margin: 0 auto;
+        }
+
+        /* ── Ultra-Compact Header ── */
+        .panel-header{position:relative; padding:10px 12px 12px; background:linear-gradient(180deg,rgba(13,18,25,.97),rgba(9,13,19,.93));
+            border-bottom:1px solid rgba(255,255,255,.075);box-shadow:inset 0 -1px 0 rgba(229,25,55,.18);}
+        
+        .header-top {display:grid;grid-template-columns:minmax(76px,auto) minmax(0,1fr) auto;gap:8px;align-items:center;margin-bottom:8px;}
+        .uow-title{margin:0;line-height:1;align-self:center;}
+        .uow-title-link{color:var(--uow-red);display:inline-block;font-size:.94rem;font-weight:780;letter-spacing:0;text-decoration:none;white-space:nowrap;}
+        .uow-title-link:hover{color:#ff5370;}
+        
+        .settings-btn{height:30px;width:30px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.035);
+            color:var(--text-muted);border-radius:8px;font-size:.86rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+        .settings-btn:hover,.settings-btn.active{color:var(--text-main);background:rgba(255,255,255,.08);}
+        .about-this-btn{height:30px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.035);
+            color:var(--text-muted);border-radius:999px;padding:0 9px;font-size:.62rem;font-weight:720;
+            text-transform:uppercase;letter-spacing:.03em;cursor:pointer;white-space:nowrap;}
+        .about-this-btn:hover{color:var(--text-main);background:rgba(255,255,255,.07);}
+
+        .header-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;font-size:0.68rem;color:var(--text-muted);font-weight:650;}
+        .stat-item{min-height:32px;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(255,255,255,0.028);padding:5px 6px;border:1px solid rgba(255,255,255,.05);border-radius:8px;}
+        .stat-item i{color:var(--uow-red);font-size:0.75rem;flex:0 0 auto;opacity:.9;}
+        .stat-item span:last-child{min-width:0;text-align:center;line-height:1.2;overflow-wrap:anywhere;}
+        
+        .progress-track{position:absolute; bottom:0; left:0; width:100%; height:3px; background:rgba(255,255,255,0.05);}
+        .progress-fill{height:100%;background:linear-gradient(90deg,var(--uow-red),#ff5370);
+            transition:width .5s cubic-bezier(0.4, 0, 0.2, 1);width:0%}
+        .custom-panel{display:none;position:absolute;top:45px;right:12px;z-index:1003;width:min(250px,calc(100vw - 24px));
+            border:1px solid rgba(255,255,255,.09);border-radius:10px;background:rgba(13,18,25,.96);
+            box-shadow:0 16px 44px rgba(0,0,0,.34);backdrop-filter:blur(14px);
+            padding:9px 12px 10px;gap:7px;grid-template-columns:1fr;}
+        .custom-panel.show{display:grid;}
+        .custom-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:30px;
+            color:rgba(232,237,243,.82);font-size:.72rem;font-weight:650;}
+        .custom-row span{display:inline-flex;align-items:center;gap:7px;min-width:0;}
+        .custom-row i{color:var(--uow-red);font-size:.78rem;}
+        .custom-row input{width:34px;height:18px;appearance:none;border-radius:999px;background:rgba(255,255,255,.14);
+            border:1px solid rgba(255,255,255,.08);position:relative;cursor:pointer;flex:0 0 auto;}
+        .custom-row input::before{content:"";position:absolute;width:14px;height:14px;left:1px;top:1px;border-radius:50%;
+            background:rgba(232,237,243,.8);transition:transform .16s,background .16s;}
+        .custom-row input:checked{background:rgba(0,94,184,.78);border-color:rgba(255,255,255,.16);}
+        .custom-row input:checked::before{transform:translateX(16px);background:#fff;}
+        .custom-action{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:rgba(232,237,243,.78);
+            border-radius:999px;padding:4px 9px;font-size:.64rem;font-weight:620;cursor:pointer;}
+        .custom-action:hover{background:rgba(255,255,255,.08);color:#fff;}
+
+        /* ── Scrollable Body ── */
+        .panel-body{padding:1.5vh 2vw;overflow-y:auto;flex-grow:1;scroll-behavior:smooth;}
+        .panel-body::-webkit-scrollbar{width:4px}
+        .panel-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
+
+        /* ── Tree Cards ── */
+        .stops-label{font-size:.7rem;font-weight:620;text-transform:uppercase;
+            letter-spacing:.8px;color:var(--text-dim);padding:0.5vh 1vw 1vh;}
+        .about-modal{display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.58);
+            backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:18px;}
+        .about-modal.show{display:flex;}
+        .about-modal-card{width:min(520px,calc(100vw - 28px));max-height:min(78vh,720px);display:flex;flex-direction:column;
+            border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(13,18,25,.97);
+            box-shadow:0 24px 64px rgba(0,0,0,.55);overflow:hidden;}
+        .about-modal-head{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:12px 14px;
+            border-bottom:1px solid rgba(255,255,255,.07);}
+        .about-modal-title{font-size:.82rem;font-weight:700;color:rgba(232,237,243,.92);text-transform:uppercase;letter-spacing:.04em;}
+        .welcome-logo{width:82px;height:34px;object-fit:contain;}
+        .about-modal-close{width:30px;height:30px;border:1px solid rgba(255,255,255,.08);border-radius:8px;
+            background:rgba(255,255,255,.04);color:rgba(232,237,243,.78);cursor:pointer;}
+        .about-modal-close:hover{background:rgba(255,255,255,.08);color:#fff;}
+        .about-modal-body{padding:14px;overflow:auto;color:rgba(232,237,243,.78);font-size:.78rem;line-height:1.45;}
+        .about-modal-body h1,.about-modal-body h2,.about-modal-body h3{font-size:1rem;line-height:1.2;margin:0 0 8px;color:rgba(232,237,243,.94);font-weight:700;}
+        .about-modal-body h4,.about-modal-body h5,.about-modal-body h6{font-size:.84rem;margin:10px 0 5px;color:rgba(232,237,243,.86);font-weight:650;}
+        .about-modal-body p{margin:0 0 8px;}
+        .about-modal-body ul{margin:4px 0 10px;padding-left:18px;}
+        .about-modal-body li{margin:3px 0;}
+
+        
+        .tree-card{background:var(--card-bg);border:1px solid var(--border-subtle);
+            border-radius:8px;padding:1.2vh 3vw;margin-bottom:0.8vh;cursor:pointer;
+            display:flex;flex-direction:column;align-items:stretch;gap:4px;
+            transition:background .15s,border-color .15s;}
+        .tree-card:hover{background:var(--card-bg-hover); transform:translateY(-1px);}
+        .tree-card.visited{border-color:rgba(46,160,67,.35);background:rgba(46,160,67,.04)}
+        
+        .tree-card-header{display:flex;align-items:center;justify-content:space-between;width:100%}
+        .card-content{flex:1;min-width:0}
+        .card-name{font-size:.9rem;font-weight:620;color:var(--text-main);
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+        .card-sci{font-size:.75rem;color:var(--text-muted);font-style:italic;
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:2px}
+        .card-check{color:var(--accent-green);font-size:1.1rem;flex-shrink:0}
+
+        /* ── Standalone Detail View ── */
+        #tree-detail-view { display: none; flex-direction: column; height: 100%; }
+        .detail-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+        .back-btn {
+            background:rgba(59,130,246,.08); color: var(--accent-blue); border:1px solid rgba(59,130,246,.16); font-size: 0.68rem; font-weight: 650;
+            cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding:5px 8px;border-radius:999px;
+            flex:0 0 auto;
+        }
+        .back-btn:hover { color: #93c5fd;background:rgba(59,130,246,.12); }
+        .detail-mini-coords{min-width:0;text-align:right;font-size:.66rem;color:var(--text-muted);
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .detail-mini-dist{font-size:.6rem;color:#2dd4bf;font-weight:700;}
+        .detail-mini-help{font-size:.58rem;color:rgba(125,138,150,.72);font-weight:620;}
+        
+        .detail-card{background:transparent;border:0;border-radius:0;padding:4px 0 0;}
+        .detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;border-bottom:1px solid var(--border-subtle);padding-bottom:10px;margin-bottom:10px;}
+        .detail-head > div:first-child{min-width:0;}
+        .detail-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); line-height: 1.15; margin:0; overflow-wrap:anywhere; }
+        .detail-sci { font-size: 0.78rem; color: var(--text-muted); font-style: italic; margin-top: 3px; line-height:1.2; }
+        .detail-badge{flex:0 0 auto;color:var(--accent-green);background:rgba(46,160,67,.1);border:1px solid rgba(46,160,67,.26);border-radius:999px;padding:3px 6px;font-size:.62rem;font-weight:650;text-transform:uppercase;}
+
+        .popup-body{padding:0}
+        .popup-fam{font-size:.8rem;color:var(--text-main);margin-bottom:8px}
+        .popup-fam span{color:var(--text-muted)}
+        .feature-info{font-size:.76rem;line-height:1.35;color:var(--text-muted);background:rgba(255,255,255,.02);
+            border:1px solid rgba(255,255,255,.045);border-radius:6px;padding:8px 10px;margin-bottom:10px;}
+        .feature-info .about-title{display:block;color:rgba(232,237,243,.86);font-size:.68rem;font-weight:650;text-transform:uppercase;margin-bottom:6px;}
+        .about-row{display:grid;grid-template-columns:58px minmax(0,1fr);gap:7px;align-items:start;}
+        .about-row + .about-row{margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.035);}
+        .about-key{color:rgba(125,138,150,.58);font-weight:650;text-transform:uppercase;font-size:.62rem;white-space:nowrap;}
+        .about-value{min-width:0;overflow-wrap:anywhere;color:rgba(232,237,243,.74);}
+        .popup-btns{display:flex;gap:8px; margin-bottom:0;}
+        .popup-btns .pb{flex:1; font-size:.76rem; padding:9px 10px; border-radius:6px;
+            font-weight:600; cursor:pointer; border:none; text-align:center;
+            text-decoration:none; display:block; white-space:nowrap;min-width:0;}
+        .pb-visit{background:var(--accent-green);color:#fff}
+        .pb-unvisit{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)!important;color:var(--text-muted)}
+        .more-info{margin-bottom:10px;}
+        .more-info-title{display:block;color:rgba(232,237,243,.78);font-size:.68rem;font-weight:650;text-transform:uppercase;margin-bottom:6px;}
+        .more-info-links{display:flex;flex-wrap:wrap;gap:5px;}
+        .more-info-link{display:inline-flex;align-items:center;gap:4px;width:max-content;max-width:100%;padding:5px 7px;border-radius:999px;
+            border:1px solid rgba(255,255,255,.08);color:rgba(232,237,243,.76);background:rgba(255,255,255,.025);
+            text-decoration:none;font-size:.64rem;font-weight:620;line-height:1;white-space:nowrap;}
+        .more-info-link:hover{color:#fff;background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);}
+
+        /* ── Image Viewer inside Detail ── */
+        .popup-img-wrap{position:relative;width:100%;height:clamp(130px, 20vh, 190px); min-height: 120px; border-radius:8px;
+            overflow:hidden;cursor:zoom-in;background:#1a1f26; margin:0 0 10px;}
+        .popup-img-blur{position:absolute;inset:0;width:100%;height:100%;
+            object-fit:cover;filter:blur(10px) brightness(.7);transform:scale(1.08);
+            transition:opacity .3s ease}
+        .popup-img-hi{position:absolute;inset:0;width:100%;height:100%;
+            object-fit:cover;opacity:0;transition:opacity .4s ease,transform .3s ease}
+        .popup-img-hi.loaded{opacity:1}
+        .popup-img-wrap:hover .popup-img-hi.loaded{transform:scale(1.03)}
+
+        /* ── Map Controls & Cluster Styles ── */
+        .map-controls{position:absolute;top:2vh;right:2vw;z-index:1000;
+            display:flex;flex-direction:column;gap:1vh; transition:opacity 0.3s ease;}
+        .icon-btn{background:var(--panel-bg);color:var(--text-main);
+            border:1px solid var(--border-soft);border-radius:8px;
+            width:clamp(38px, 3.5vw, 46px);height:clamp(38px, 3.5vw, 46px);cursor:pointer;display:flex;align-items:center;
+            justify-content:center;font-size:1.08rem;
+            backdrop-filter:blur(18px);box-shadow:0 4px 14px rgba(0,0,0,.45);
+            transition:background .15s}
+        .icon-btn:hover{background:rgba(255,255,255,.12)}
+        .icon-btn.active{background:var(--uow-red);border-color:transparent;color:#fff;}
+        .icon-btn i{pointer-events:none;}
+        #gps-toggle{position:relative;}
+        #gps-toggle > i{transform:translate(-1px,1px);}
+        #gps-toggle.locating,#gps-toggle.gps-active{background:var(--panel-bg);border-color:var(--border-soft);color:var(--text-main);}
+        .gps-status-light{position:absolute;top:8px;right:9px;width:5px;height:5px;border-radius:50%;
+            background:rgba(255,255,255,.24);box-shadow:0 0 0 1px rgba(0,0,0,.45);pointer-events:none;}
+        #gps-toggle.locating .gps-status-light{background:#facc15;box-shadow:0 0 0 3px rgba(250,204,21,.18);animation:gps-light-pulse .85s ease-in-out infinite;}
+        #gps-toggle.gps-active .gps-status-light{background:#86efac;box-shadow:0 0 0 3px rgba(46,160,67,.22);}
+        .gps-prompt{position:absolute;top:2vh;right:calc(2vw + clamp(38px, 3.5vw, 46px) + 10px);z-index:1001;
+            width:min(280px,calc(100vw - 96px));background:rgba(13,17,23,.94);border:1px solid rgba(255,255,255,.08);
+            border-radius:12px;padding:11px;box-shadow:0 14px 34px rgba(0,0,0,.55);backdrop-filter:blur(18px);
+            opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .18s,transform .18s;}
+        .gps-prompt.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+        .gps-prompt-title{font-size:.76rem;font-weight:700;color:var(--text-main);margin-bottom:3px;}
+        .gps-prompt-text{font-size:.68rem;line-height:1.35;color:var(--text-muted);margin-bottom:9px;}
+        .gps-prompt-actions{display:flex;gap:6px;justify-content:flex-end;}
+        .gps-prompt-btn{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--text-muted);
+            border-radius:999px;padding:6px 9px;font-size:.66rem;font-weight:650;cursor:pointer;}
+        .gps-prompt-btn.primary{background:var(--uow-red);border-color:transparent;color:#fff;}
+
+        /* ── Lightbox ── */
+        #lightbox{display:none;position:fixed;z-index:9999;inset:0;
+            background:rgba(0,0,0,.95);justify-content:center;align-items:center;
+            opacity:0;transition:opacity .25s;backdrop-filter:blur(12px)}
+        #lightbox.show{display:flex;opacity:1}
+        #lightbox img{max-width:90vw;max-height:88vh;border-radius:12px;box-shadow:0 0 50px rgba(0,0,0,.9)}
+        .close-lb{position:absolute;top:2vh;right:3vw;font-size:2rem;
+            color:rgba(255,255,255,.5);cursor:pointer;transition:color .15s;line-height:1}
+
+        /* ── Mobile Viewports & Draggable Sheet ── */
+        @keyframes gps-light-pulse{50%{transform:scale(1.45);box-shadow:0 0 0 5px rgba(250,204,21,.15)}}
+
+    </style>
+    <link rel="stylesheet" href="src/walk.css">
+    <link rel="stylesheet" href="src/tree-card.css">
+    <link rel="stylesheet" href="src/midnight.css">
+    <link rel="preload" href="src/fonts/Montserrat.woff" as="font" type="font/woff" crossorigin>
+</head>
+<body>
+<div id="map" role="region" aria-label="UOW campus map"></div>
+<div id="map-fallback" hidden role="status"><p></p><button class="walk-btn" onclick="location.reload()">Retry map</button></div>
+
+<div id="ui-panel">
+    <div id="drag-handle-container" role="button" tabindex="0" aria-label="Resize tree panel" aria-expanded="true">
+        <div id="drag-handle"></div>
+    </div>
+    <div class="panel-header">
+        <div class="header-top">
+            <h4 class="uow-title">
+                <a class="uow-title-link" href="https://www.uow.edu.au/about/services/environment/campus-environment/wollongong-campus-tree-walk/" target="_blank" rel="noopener noreferrer">Tree Walk</a>
+            </h4>
+            <span id="current-walk-badge" class="current-walk-badge" aria-label="Current walk">Quick Walk</span>
+            <button id="custom-toggle" class="settings-btn" type="button" title="Settings" aria-label="Settings">
+                <i class="bi bi-sliders"></i>
+            </button>
+        </div>
+        <div class="header-stats">
+            <span class="stat-item" title="Progress"><i class="bi bi-check2-circle"></i> <span id="progress-text">0/0</span></span>
+            <span class="stat-item" title="Distance Left"><i class="bi bi-signpost-split"></i> <span id="stat-dist">-- km</span></span>
+            <span class="stat-item" title="Estimated Time"><i class="bi bi-clock-history"></i> <span id="stat-time">-- min</span></span>
+        </div>
+        <section id="walk-strip" hidden aria-label="Next tree">
+            <div class="direction-arrow" aria-hidden="true"><span id="nav-arrow">&#8593;</span></div>
+            <button id="nav-tree" class="nav-tree" aria-describedby="nav-guidance">
+                <span class="nav-caption" id="nav-stop"></span><strong id="nav-name"></strong><span class="nav-caption" id="nav-distance"></span>
+            </button>
+            <button id="walk-menu-toggle" class="settings-btn" aria-label="Walk menu" aria-controls="walk-menu" aria-expanded="false"><i class="bi bi-three-dots"></i></button>
+            <div class="nav-status" id="nav-guidance"></div>
+            <div id="arrival" hidden role="status" aria-live="polite"><p id="arrival-text"></p></div>
+            <div class="nav-actions"><button id="nav-primary" class="walk-btn primary symbol-action"><i class="bi bi-eye" aria-hidden="true"></i><span>View tree</span></button><button id="skip-stop" class="text-btn symbol-action" aria-label="Skip this tree" title="Skip this tree"><i class="bi bi-skip-forward" aria-hidden="true"></i><span>Skip</span></button></div>
+        </section>
+        <div id="custom-panel" class="custom-panel" aria-label="Site customisations">
+            <label class="custom-row">
+                <span><i class="bi bi-phone-vibrate"></i> Haptics</span>
+                <input id="custom-haptics" type="checkbox" checked>
+            </label>
+            <label class="custom-row">
+                <span><i class="bi bi-intersect"></i> Repeat paths</span>
+                <input id="custom-repeat-paths" type="checkbox" checked>
+            </label>
+            <label class="custom-row">
+                <span><i class="bi bi-tags"></i> Nearby labels</span>
+                <input id="custom-nearby-labels" type="checkbox" checked>
+            </label>
+            <label class="custom-row">
+                <span><i class="bi bi-signpost-split"></i> Campus paths</span>
+                <input id="custom-campus-paths" type="checkbox" checked>
+            </label>
+            <label class="field">Arrival distance (metres)<input id="arrival-threshold" type="number" min="15" max="60" step="5" value="30"></label>
+            <div class="custom-row">
+                <span><i class="bi bi-info-circle"></i> Welcome</span>
+                <button id="custom-welcome" class="custom-action" type="button">View</button>
+            </div>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+
+    <div class="panel-body">
+        <section id="walk-summary" hidden tabindex="-1" aria-label="Walk summary"></section>
+        <section id="walk-home" aria-label="Start a campus walk">
+            <div class="home-kicker"><p class="eyebrow">Wollongong campus</p><span id="home-tools"></span></div>
+            <h1>UOW Tree Walk</h1>
+            <p class="home-description">Explore the living campus.</p>
+            <div class="walk-overview"><p id="home-walk-type" class="selected-walk">Quick Walk</p><p class="walk-note" id="route-estimate">Preparing your walk&hellip;</p></div>
+            <button class="walk-btn primary home-start symbol-action" id="start-walk" disabled><i class="bi bi-play-fill" aria-hidden="true"></i><span>Start walk</span></button>
+            <p id="saved-walk-note" class="walk-note" hidden>Progress saved on this device.</p>
+            <section class="walk-planner" aria-label="Plan your walk">
+                <details class="route-options" id="route-options"><summary><span class="symbol-action"><i class="bi bi-signpost-split" aria-hidden="true"></i> Change walk</span><span id="route-label" class="sr-only">15 minutes</span></summary>
+                <div class="planner-row">
+                    <label class="field">Choose a walk<select id="walk-mode">
+                        <option value="quick" selected>Quick Walk &middot; ~15 min</option>
+                        <option value="casual">Casual Walk &middot; ~30 min</option>
+                        <option value="full">Full Walk &middot; all trees</option>
+                        <option value="nearby">Explore Nearby</option>
+                    </select></label>
+                    <label class="field">Start from<select id="walk-start"><option>Loading trees&hellip;</option></select></label>
+                </div>
+                <p class="walk-note">Approximate paths. Dashed links are direct. Time includes stops.</p>
+                </details>
+            </section>
+            <section class="home-stop-preview" aria-label="Trees along your walk">
+                <h2>Along the walk</h2><ol id="home-stop-list"></ol>
+            </section>
+            <button id="browse-trees" class="text-btn symbol-action" aria-label="Browse trees"><i class="bi bi-tree" aria-hidden="true"></i><span>Browse trees</span></button>
+            <button id="walk-review" class="text-btn symbol-action" hidden aria-label="View walk summary"><i class="bi bi-bar-chart" aria-hidden="true"></i><span>Summary</span></button>
+        </section>
+        <div id="browse-controls" hidden>
+            <div class="browse-heading"><button id="close-browser" class="back-btn symbol-action" aria-label="Back to walk" title="Back to walk"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Walk</span></button><h2>Trees</h2></div>
+            <div class="list-tools">
+                <label class="field"><span class="sr-only">Find a tree by common or scientific name</span><input id="tree-search" type="search" placeholder="Name or species" autocomplete="off"></label>
+                <div class="filters" role="group" aria-label="Filter trees">
+                    <button class="filter-btn symbol-action" data-filter="all" aria-pressed="true"><i class="bi bi-grid" aria-hidden="true"></i><span>All</span></button>
+                    <button class="filter-btn symbol-action" data-filter="nearby" aria-pressed="false"><i class="bi bi-geo-alt" aria-hidden="true"></i><span>Nearby</span></button>
+                    <button class="filter-btn symbol-action" data-filter="unvisited" aria-pressed="false" aria-label="Unvisited trees" title="Unvisited trees"><i class="bi bi-circle" aria-hidden="true"></i><span>Unvisited</span></button>
+                    <button class="filter-btn symbol-action" data-filter="visited" aria-pressed="false" aria-label="Visited trees" title="Visited trees"><i class="bi bi-check2-circle" aria-hidden="true"></i><span>Visited</span></button>
+                </div>
+            </div>
+        </div>
+        <div id="stops-list" hidden>
+            <div style="text-align:center;padding-top:2rem;color:var(--text-muted)">
+                <div style="width:24px;height:24px;border:3px solid var(--uow-red);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 1vh"></div>
+                <div style="font-size:.85rem">Loading mapping data…</div>
+            </div>
+        </div>
+        <div id="tree-detail-view">
+            <div class="detail-nav">
+                <button class="back-btn symbol-action" id="detail-back" onclick="returnFromTreeDetails()" aria-label="Back to Tour List" title="Back to Tour List"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Trees</span></button>
+                <span id="detail-mini-coords" class="detail-mini-coords"></span>
+            </div>
+            <div id="detail-content-area"></div>
+        </div>
+    </div>
+</div>
+
+<div id="app-status" role="status" aria-live="polite"></div>
+<div class="map-controls">
+    <button id="gps-toggle" class="icon-btn" title="Track my location">
+        <span class="gps-status-light" aria-hidden="true"></span>
+        <i class="bi bi-crosshair"></i>
+    </button>
+    <button id="map-tools-toggle" class="icon-btn" aria-label="Map tools" aria-controls="map-tools" aria-expanded="false"><i class="bi bi-layers"></i></button>
+    <button id="resume-follow" class="walk-btn follow-btn symbol-action symbol-only" hidden aria-label="Resume following my location" title="Resume follow"><i class="bi bi-cursor-fill" aria-hidden="true"></i></button>
+</div>
+<div id="map-tools" class="utility-popover" hidden role="dialog" aria-label="Map tools">
+    <div class="popover-heading"><strong>Map tools</strong><button class="settings-btn" data-close-popover aria-label="Close map tools"><i class="bi bi-x-lg"></i></button></div>
+    <div class="action-row"><button id="map-zoom-in" class="walk-btn symbol-action" aria-label="Zoom in" title="Zoom in"><i class="bi bi-plus-lg" aria-hidden="true"></i></button><button id="map-zoom-out" class="walk-btn symbol-action" aria-label="Zoom out" title="Zoom out"><i class="bi bi-dash-lg" aria-hidden="true"></i></button><button id="home-view" class="walk-btn symbol-action" aria-label="Fit walk on map" title="Fit walk on map"><i class="bi bi-arrows-fullscreen" aria-hidden="true"></i><span>Fit walk</span></button></div>
+    <label class="field">Basemap<select id="basemap"><option value="dark">UOW Midnight Explorer</option><option value="light">Outdoor / Daylight</option><option value="aerial">Aerial - NSW imagery</option></select></label>
+    <button id="mode-3d" class="walk-btn symbol-action" aria-label="Switch to 3D view" aria-pressed="false" title="Switch to 3D view"><i class="bi bi-box" aria-hidden="true"></i><span>Explore in 3D</span></button>
+    <p class="walk-note route-key"><span aria-hidden="true">·····</span> Walking route<br><span aria-hidden="true">– –</span> Direct connection</p>
+</div>
+<div id="walk-menu" class="utility-popover" hidden role="dialog" aria-label="Walk menu">
+    <div class="popover-heading"><strong>Your walk</strong><button class="settings-btn" data-close-popover aria-label="Close walk menu"><i class="bi bi-x-lg"></i></button></div>
+    <p id="walk-menu-progress" class="walk-note"></p>
+    <button id="pause-walk" class="walk-btn symbol-action"><i class="bi bi-pause-fill" aria-hidden="true"></i><span>Pause</span></button>
+    <button id="show-route" class="walk-btn symbol-action"><i class="bi bi-signpost-split" aria-hidden="true"></i><span>Route</span></button>
+    <button id="menu-browse" class="walk-btn symbol-action"><i class="bi bi-tree" aria-hidden="true"></i><span>Trees</span></button>
+    <button id="finish-walk" class="walk-btn symbol-action"><i class="bi bi-flag" aria-hidden="true"></i><span>Finish</span></button>
+    <button id="menu-settings" class="text-btn symbol-action"><i class="bi bi-sliders" aria-hidden="true"></i><span>Settings</span></button>
+    <p class="walk-note">Progress saved automatically.</p>
+</div>
+
+<div id="about-modal" class="about-modal" role="dialog" aria-modal="true" aria-labelledby="about-modal-title">
+    <div class="about-modal-card">
+        <div class="about-modal-head">
+            <div id="about-modal-title" class="about-modal-title">Welcome</div>
+            <img class="welcome-logo" src="src/logo.png" alt="UOW Tree Walk logo">
+            <button id="about-modal-close" class="about-modal-close" type="button" aria-label="Close welcome">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div id="about-modal-body" class="about-modal-body">
+            <div id="welcome-content">Loading welcome...</div>
+        </div>
+    </div>
+</div>
+
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Tree photograph" onclick="closeLightbox()">
+    <button class="close-lb" aria-label="Close photograph" type="button">&times;</button>
+    <img id="lightbox-img" src="" alt="Tree High Res">
+</div>
+
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+<script src="./src/map-theme.js"></script>
+<script src="./src/map-view.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="./src/location-tracker.js"></script>
+
+<script src="./src/walk-core.js"></script>
+<script>
+// ── 0. MOBILE BOTTOM SHEET DRAG LOGIC ────────────────────────
+let resolveWalkingExperience;
+const walkingExperienceReady = new Promise(resolve=>{resolveWalkingExperience=resolve;});
+const uiPanel = document.getElementById('ui-panel');
+const dragHandleContainer = document.getElementById('drag-handle-container');
+const panelHeader = document.querySelector('.panel-header');
+let startY, startHeight, isDragging = false, sheetDragMoved = false, sheetDragPointerId = null, sheetDragTarget = null;
+let sheetRecenterFrame = null;
+let sheetState = 'half';
+function isSheetLayout() {
+    // Reserve enough room for a readable panel and a useful map, based on the user's text size.
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    return document.documentElement.clientWidth < rem * 54;
+}
+function sheetHeights() {
+    const h=window.visualViewport?.height||window.innerHeight;
+    const rem=parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const safe=parseFloat(getComputedStyle(uiPanel).paddingBottom)||0;
+    const peek=Math.min(h*.85,dragHandleContainer.offsetHeight+panelHeader.offsetHeight+safe);
+    const attribution=document.querySelector('.maplibregl-ctrl-attrib');
+    const mapMinimum=rem*4.75+(attribution?.offsetHeight||rem*1.5);
+    const expanded=Math.max(peek,Math.min(h*.85,h-mapMinimum));
+    const home=document.getElementById('walk-home');
+    const bodyStyle=getComputedStyle(document.querySelector('.panel-body'));
+    const homeSize=typeof walkView!=='undefined'&&walkView==='home'?peek+home.scrollHeight+parseFloat(bodyStyle.paddingTop)+parseFloat(bodyStyle.paddingBottom):0;
+    return {peek,half:Math.min(expanded,Math.max(peek,h*.45,Math.min(h*.62,homeSize))),expanded};
+}
+function getSheetPeekHeight() { return sheetHeights().peek; }
+function setSheetState(state, recenter = true) {
+    sheetState = state;
+    if(isSheetLayout()&&typeof walkView!=='undefined'&&walkView==='walking')walkingDetailsOpen=state!=='peek';
+    uiPanel.dataset.sheetState = state;
+    uiPanel.classList.toggle('sheet-hidden',state === 'peek' && isSheetLayout());
+    dragHandleContainer.setAttribute('aria-expanded',String(state !== 'peek'));
+    dragHandleContainer.setAttribute('aria-label',`Tree panel: ${state}. Activate to resize; use arrow keys for size.`);
+    if(typeof syncCardHeader==='function')syncCardHeader();
+    if(isSheetLayout()) uiPanel.style.setProperty('--sheet-height',`${sheetHeights()[state]}px`);
+    else { uiPanel.style.height=''; uiPanel.style.removeProperty('--sheet-height'); }
+    uiPanel.style.height='';
+    if(typeof walkView !== 'undefined' && walkView==='walking')updateNavigationAction();
+    if(state==='peek'&&document.querySelector('.panel-body').contains(document.activeElement))dragHandleContainer.focus({preventScroll:true});
+    if(recenter) requestSheetMapRefresh();
+}
+function hideMobileSheet() { if(isSheetLayout()) setSheetState('peek'); }
+function showMobileSheet(height = null) { if(isSheetLayout()) setSheetState(height && height > sheetHeights().half ? 'expanded' : 'half'); }
+function requestSheetMapRefresh() {
+    clearTimeout(sheetRecenterFrame);
+    sheetRecenterFrame=setTimeout(()=>{
+        sheetRecenterFrame=null;
+        if(walk.follow&&userLoc){walk.lastFollow=null;followLocation();}
+        else if(activeTree)flyToVisible([activeTree.lat,activeTree.lng],mapView.getZoom(),{animate:false});
+        else if(walkView==='home')fitHomeView({animate:false,maxZoom:18});
+    },260);
+}
+function beginPanelDrag(e) {
+    if(!isSheetLayout() || (e.pointerType==='mouse' && e.button!==0))return;
+    startY=e.clientY;startHeight=uiPanel.getBoundingClientRect().height;isDragging=true;sheetDragMoved=false;
+    sheetDragPointerId=e.pointerId;sheetDragTarget=e.currentTarget;sheetDragTarget.setPointerCapture?.(e.pointerId);
+    uiPanel.style.transition='none';
+}
+dragHandleContainer.addEventListener('pointerdown',beginPanelDrag);
+document.addEventListener('pointermove',e=>{
+    if(!isDragging)return;
+    if(e.cancelable)e.preventDefault();
+    const dy=startY-e.clientY;if(Math.abs(dy)>4)sheetDragMoved=true;
+    const heights=sheetHeights();
+    uiPanel.style.setProperty('--sheet-height',`${Math.max(heights.peek,Math.min(heights.expanded,startHeight+dy))}px`);
+});
+function endPanelDrag(){
+    if(!isDragging)return;isDragging=false;
+    if(sheetDragTarget?.hasPointerCapture?.(sheetDragPointerId))sheetDragTarget.releasePointerCapture(sheetDragPointerId);
+    sheetDragPointerId=null;sheetDragTarget=null;uiPanel.style.transition='';
+    const height=uiPanel.getBoundingClientRect().height;
+    const nearest=Object.entries(sheetHeights()).sort((a,b)=>Math.abs(a[1]-height)-Math.abs(b[1]-height))[0][0];
+    setSheetState(nearest);
+}
+document.addEventListener('pointerup',endPanelDrag);document.addEventListener('pointercancel',endPanelDrag);
+dragHandleContainer.addEventListener('click',()=>{if(sheetDragMoved){sheetDragMoved=false;return;}setSheetState({peek:'half',half:'expanded',expanded:'peek'}[sheetState]);});
+dragHandleContainer.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','Enter',' '].includes(e.key)){e.preventDefault();setSheetState(e.key==='ArrowUp'?'expanded':e.key==='ArrowDown'?'peek':{peek:'half',half:'expanded',expanded:'peek'}[sheetState]);}});
+document.body.classList.toggle('sheet-layout',isSheetLayout());
+
+// ── 1. MAP INIT, DYNAMIC MARKERS & AUTO-HIDE ─────────────────────────
+const UOW_CENTER = [-34.405179721817376, 150.87717061799876];
+function calcBounds() {
+    const isMob = isSheetLayout();
+    const baseLat = 0.005, baseLng = 0.009; // Tighter bounds for 80% coverage
+    return [
+        [UOW_CENTER[0] - baseLat * (isMob ? 1.5 : 1.1), UOW_CENTER[1] - baseLng * (isMob ? 1.3 : 1.1)],
+        [UOW_CENTER[0] + baseLat * (isMob ? 1.8 : 1.1), UOW_CENTER[1] + baseLng * (isMob ? 1.3 : 1.1)]
+    ];
+}
+
+let legacyOutdoor=false;
+try{legacyOutdoor=JSON.parse(localStorage.getItem('uowTreeWalkWalkingPreferences')||'{}').outdoor===true;}catch{}
+const mapView=new CampusMap({container:'map',center:UOW_CENTER,outdoor:legacyOutdoor,
+    onNotice:message=>{if(typeof showStatus==='function')showStatus(message);else document.getElementById('app-status').textContent=message;},
+    onTreeClick:id=>{activateTree(id);flyToVisible([treeById.get(id).lat,treeById.get(id).lng],19);},
+    onMapClick:handleFeaturelessMapClick
+});
+const map=mapView.map;
+function getCampusBounds(){const b=calcBounds();return [[b[0][1],b[0][0]],[b[1][1],b[1][0]]];}
+map?.setMaxBounds(getCampusBounds());
+window.addEventListener('resize',()=>map?.setMaxBounds(getCampusBounds()),{passive:true});
+function getMapPadding(){
+    const panel=uiPanel.getBoundingClientRect(),rem=parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const h=window.visualViewport?.height||innerHeight;
+    return isSheetLayout()?{top:rem,right:rem,bottom:Math.min(panel.height+rem,h-rem*2),left:rem}:{top:rem,right:rem,bottom:rem,left:panel.right+rem};
+}
+function flyToVisible(latlng,zoom,options={}){mapView.focus(latlng,zoom??mapView.getZoom(),getMapPadding(),options);}
+function fitHomeView(options={}){mapView.fitBounds(getWalkBounds(),getMapPadding(),options);}
+function recenterVisibleMap(options={}){if(activeTree)flyToVisible([activeTree.lat,activeTree.lng],mapView.getZoom(),options);else fitHomeView(options);}
+function getWalkBounds(){
+    const navigating=typeof walk!=='undefined'&&['active','paused','saved'].includes(walk.status);
+    const route=navigating?pendingTrees():(currentRoute.length?currentRoute:treeData);
+    const points=route.map(t=>[t.lng,t.lat]);
+    if(navigating&&points.length){const origin=walkOrigin();points.push([origin.lng,origin.lat]);}
+    if(!points.length)return getCampusBounds();
+    const west=Math.min(...points.map(p=>p[0])),east=Math.max(...points.map(p=>p[0])),south=Math.min(...points.map(p=>p[1])),north=Math.max(...points.map(p=>p[1]));
+    const dx=Math.max(.0001,(east-west)*.12),dy=Math.max(.0001,(north-south)*.12);
+    return [[west-dx,south-dy],[east+dx,north+dy]];
+}
+
+let treeData = [], currentRoute = [];
+const treeById = new Map();
+const treeSnapCache = new Map();
+const NEARBY_LABEL_DISTANCE = 25;
+const NEARBY_LABEL_LIMIT = 5;
+const treeLinksCache = new Map();
+let treeLinksPromise = null;
+let endpointInitialLabelsShown = false;
+let endpointLabelHideTimer = null;
+let endpointTwoFingerHoldTimer = null;
+const visitedStops = new Set();
+let userLoc = null;
+const hapticAlertedTreeIds = new Set();
+let lastHapticAt = 0;
+const networkGraph = {}, nodeCoords = {};
+const networkSegments = [];
+let activeTreeId = null;
+let activeTree = null;
+let lastUserRouteRenderLoc = null;
+let gpsUpdateQueued = false;
+const customSettings = {
+    haptics: true,
+    repeatPaths: true,
+    nearbyLabels: true,
+    campusPaths: true
+};
+const CUSTOM_SETTINGS_KEY = 'uowTreeWalkCustomSettings';
+const WELCOME_SEEN_KEY = 'uowTreeWalkWelcomeSeen';
+let welcomeHTML = '';
+let dialogReturnFocus = null;
+
+function loadCustomSettings() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(CUSTOM_SETTINGS_KEY) || '{}');
+        Object.assign(customSettings, {
+            haptics: saved.haptics !== false,
+            repeatPaths: saved.repeatPaths !== false,
+            nearbyLabels: saved.nearbyLabels !== false,
+            campusPaths: saved.campusPaths !== false
+        });
+    } catch (e) {
+        customSettings.haptics = true;
+        customSettings.repeatPaths = true;
+        customSettings.nearbyLabels = true;
+        customSettings.campusPaths = true;
+    }
+}
+
+function saveCustomSettings() {
+    try { localStorage.setItem(CUSTOM_SETTINGS_KEY, JSON.stringify(customSettings)); } catch (e) {}
+}
+
+function syncCustomSettingsUI() {
+    const panel = document.getElementById('custom-panel');
+    const toggle = document.getElementById('custom-toggle');
+    const haptics = document.getElementById('custom-haptics');
+    const repeatPaths = document.getElementById('custom-repeat-paths');
+    const nearbyLabels = document.getElementById('custom-nearby-labels');
+    const campusPaths = document.getElementById('custom-campus-paths');
+    if (haptics) haptics.checked = customSettings.haptics;
+    if (repeatPaths) repeatPaths.checked = customSettings.repeatPaths;
+    if (nearbyLabels) nearbyLabels.checked = customSettings.nearbyLabels;
+    if (campusPaths) campusPaths.checked = customSettings.campusPaths;
+    if (toggle && panel) {toggle.classList.toggle('active', panel.classList.contains('show'));toggle.setAttribute('aria-expanded',String(panel.classList.contains('show')));}
+}
+
+function syncCampusPathsLayer(){mapView.setPathsVisible(customSettings.campusPaths);}
+function bindCustomSettings() {
+    loadCustomSettings();
+    syncCustomSettingsUI();
+    syncCampusPathsLayer();
+
+    const panel = document.getElementById('custom-panel');
+    const toggle = document.getElementById('custom-toggle');
+    toggle?.addEventListener('click', () => {
+        if(walk.status==='active')return;
+        if(panel?.classList.contains('show')){panel.classList.remove('show');syncCustomSettingsUI();}
+        else openSettings(toggle);
+    });
+    document.addEventListener('pointerdown', event => {
+        if (!panel?.classList.contains('show')) return;
+        const target = event.target;
+        if (panel.contains(target) || toggle?.contains(target)) return;
+        panel.classList.remove('show');
+        syncCustomSettingsUI();
+    });
+
+    [
+        ['custom-haptics', 'haptics'],
+        ['custom-repeat-paths', 'repeatPaths'],
+        ['custom-nearby-labels', 'nearbyLabels'],
+        ['custom-campus-paths', 'campusPaths']
+    ].forEach(([id, key]) => {
+        document.getElementById(id)?.addEventListener('change', event => {
+            customSettings[key] = event.target.checked;
+            saveCustomSettings();
+            if (key === 'nearbyLabels') updateDynamicGPSContexts();
+            if (key === 'repeatPaths') mapView.setRepeatVisible(customSettings.repeatPaths);
+            if (key === 'campusPaths') syncCampusPathsLayer();
+            syncCustomSettingsUI();
+        });
+    });
+
+    document.getElementById('custom-welcome')?.addEventListener('click', () => {
+        panel?.classList.remove('show');
+        syncCustomSettingsUI();
+        openAboutModal();
+    });
+}
+
+const DEG = Math.PI / 180;
+function getDistance(lat1, lon1, lat2, lon2) {
+    const p1 = lat1*DEG, p2 = lat2*DEG;
+    const dp = (lat2-lat1)*DEG, dl = (lon2-lon1)*DEG;
+    const a = Math.sin(dp/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+    return 6371e3 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function escapeHTML(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+}
+
+function renderMarkdownInline(value) {
+    return escapeHTML(value)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/__(.+?)__/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/_(.+?)_/g, '<em>$1</em>');
+}
+
+function renderWelcomeMarkdown(markdown) {
+    const lines = String(markdown || '').split(/\r?\n/);
+    const html = [];
+    let inList = false;
+
+    lines.forEach(rawLine => {
+        const line = rawLine.trim();
+        if (!line) {
+            if (inList) { html.push('</ul>'); inList = false; }
+            return;
+        }
+
+        const heading = line.match(/^(#{1,6})\s+(.+)$/);
+        if (heading) {
+            if (inList) { html.push('</ul>'); inList = false; }
+            const level = Math.min(6, heading[1].length);
+            html.push(`<h${level}>${renderMarkdownInline(heading[2])}</h${level}>`);
+            return;
+        }
+
+        const listItem = line.match(/^[-*+]\s+(.+)$/);
+        if (listItem) {
+            if (!inList) { html.push('<ul>'); inList = true; }
+            html.push(`<li>${renderMarkdownInline(listItem[1])}</li>`);
+            return;
+        }
+
+        if (inList) { html.push('</ul>'); inList = false; }
+        html.push(`<p>${renderMarkdownInline(line)}</p>`);
+    });
+
+    if (inList) html.push('</ul>');
+    return html.join('');
+}
+
+function loadWelcomeContent() {
+    fetch('about.md')
+        .then(response => response.ok ? response.text() : '')
+        .then(markdown => {
+            welcomeHTML = renderWelcomeMarkdown(markdown);
+            const body = document.getElementById('welcome-content');
+            if (body) body.innerHTML = welcomeHTML || '<p>Welcome is not available.</p>';
+
+        })
+        .catch(() => {
+            welcomeHTML = '';
+            const body = document.getElementById('welcome-content');
+            if (body) body.innerHTML = '<p>Welcome is not available.</p>';
+
+        });
+}
+
+function normalizeTreeLinkKey(value) {
+    return String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function safeExternalURL(value) {
+    try {
+        const url = new URL(String(value ?? ''), window.location.href);
+        return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+    } catch (e) {
+        return '';
+    }
+}
+
+function getTreeLinks(treeName) {
+    return treeLinksCache.get(normalizeTreeLinkKey(treeName)) || [];
+}
+
+function loadTreeLinks() {
+    if (!treeLinksPromise) {
+        treeLinksPromise = fetch('src/trees_links.json')
+            .then(r => r.ok ? r.json() : [])
+            .then(records => {
+                treeLinksCache.clear();
+                (Array.isArray(records) ? records : []).forEach(record => {
+                    const links = Array.isArray(record.more_info)
+                        ? record.more_info
+                            .map(link => ({ label: String(link.label || '').trim(), url: safeExternalURL(link.url) }))
+                            .filter(link => link.label && link.url)
+                        : [];
+                    if (record.name && links.length) treeLinksCache.set(normalizeTreeLinkKey(record.name), links);
+                });
+                return treeLinksCache;
+            })
+            .catch(() => treeLinksCache);
+    }
+    return treeLinksPromise;
+}
+
+async function getOptimizedImageSrc(url) { return url; }
+
+// ── 2. CAMPUS PATHS & ADVANCED SNAP GEOMETRY ──────────────────
+let campusPathsData = null;
+fetch('campus_paths.geojson').then(r => r.json()).then(data => {
+    data.features.forEach(f => {
+        if (f.geometry?.type !== 'LineString') return;
+        const coords = f.geometry.coordinates;
+        for (let i = 0; i < coords.length - 1; i++) {
+            const [lng1,lat1] = coords[i], [lng2,lat2] = coords[i+1];
+            const k1 = `${lat1.toFixed(5)},${lng1.toFixed(5)}`;
+            const k2 = `${lat2.toFixed(5)},${lng2.toFixed(5)}`;
+            nodeCoords[k1] = [lat1, lng1]; nodeCoords[k2] = [lat2, lng2];
+            networkSegments.push({ k1, k2, lat1, lng1, lat2, lng2 });
+            const d = getDistance(lat1, lng1, lat2, lng2);
+            (networkGraph[k1] ??= []).push({ to: k2, dist: d });
+            (networkGraph[k2] ??= []).push({ to: k1, dist: d });
+        }
+    });
+    campusPathsData=data;
+    mapView.setPaths(data);
+    syncCampusPathsLayer();
+    loadTreeCSV();
+}).catch(async () => { await walkingExperienceReady; showStatus('Campus paths unavailable. Distances and dashed routes are straight-line estimates.'); loadTreeCSV(); });
+
+function sqDist(x1,y1, x2,y2) { return (x2-x1)**2 + (y2-y1)**2; }
+function distToSegmentSquared(px,py, vx,vy, wx,wy) {
+    const l2 = sqDist(vx,vy,wx,wy);
+    if (l2 === 0) return sqDist(px,py,vx,vy);
+    let t = ((px-vx)*(wx-vx) + (py-vy)*(wy-vy)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    return sqDist(px,py, vx + t*(wx-vx), vy + t*(wy-vy));
+}
+
+function snapToNetwork(lat, lng) {
+    if (!networkSegments.length) return null;
+    let minD = Infinity, bestNodeKey = null;
+    const cosLat = Math.cos(lat * DEG);
+    const px = lng * cosLat, py = lat;
+
+    for (const segment of networkSegments) {
+        const { k1, k2, lat1, lng1, lat2, lng2 } = segment;
+        const vx = lng1 * cosLat, vy = lat1;
+        const wx = lng2 * cosLat, wy = lat2;
+        const dSq = distToSegmentSquared(px, py, vx, vy, wx, wy);
+        if (dSq < minD) {
+            minD = dSq;
+            const d1 = getDistance(lat, lng, lat1, lng1);
+            const d2 = getDistance(lat, lng, lat2, lng2);
+            bestNodeKey = d1 < d2 ? k1 : k2;
+        }
+    }
+    return bestNodeKey || Object.keys(nodeCoords)[0];
+}
+
+function getTreeSnapKey(tree) {
+    if (!tree) return null;
+    if (!tree.id) return snapToNetwork(tree.lat, tree.lng);
+    if (!treeSnapCache.has(tree.id)) treeSnapCache.set(tree.id, snapToNetwork(tree.lat, tree.lng));
+    return treeSnapCache.get(tree.id);
+}
+
+const _pathCache = new Map();
+function findNetworkPath(sKey, eKey) {
+    if (!networkGraph[sKey] || !networkGraph[eKey]) return null;
+    const cacheKey = sKey < eKey ? `${sKey}|${eKey}` : `${eKey}|${sKey}`;
+    if (_pathCache.has(cacheKey)) {
+        const cached = _pathCache.get(cacheKey);
+        return (sKey < eKey) ? cached : (cached ? [...cached].reverse() : null);
+    }
+    const distances = {}, previous = {}; const pq = [[0, sKey]];
+    for (const k in networkGraph) distances[k] = Infinity;
+    distances[sKey] = 0;
+    while (pq.length) {
+        pq.sort((a,b) => a[0]-b[0]);
+        const [dist, u] = pq.shift();
+        if (u === eKey) break;
+        if (dist > distances[u]) continue;
+        for (const { to, dist: w } of (networkGraph[u] || [])) {
+            const alt = distances[u] + w;
+            if (alt < distances[to]) { distances[to] = alt; previous[to] = u; pq.push([alt, to]); }
+        }
+    }
+    if (distances[eKey] === Infinity) { _pathCache.set(cacheKey, null); return null; }
+    if (_pathCache.size >= 2048) _pathCache.delete(_pathCache.keys().next().value);
+    const path = []; let curr = eKey;
+    while (curr) { path.push(nodeCoords[curr]); curr = previous[curr]; }
+    path.reverse(); _pathCache.set(cacheKey, sKey < eKey ? path : [...path].reverse()); return path;
+}
+
+function getPathDistance(path) {
+    if (!Array.isArray(path) || path.length < 2) return 0;
+    let distance = 0;
+    for (let i = 0; i < path.length - 1; i++) {
+        distance += getDistance(path[i][0], path[i][1], path[i + 1][0], path[i + 1][1]);
+    }
+    return distance;
+}
+
+function getRouteLegDistance(fromTree, toTree) {
+    if (!fromTree || !toTree) return Infinity;
+    const sk = getTreeSnapKey(fromTree), ek = getTreeSnapKey(toTree);
+    if (sk && ek && nodeCoords[sk] && nodeCoords[ek]) {
+        const path = findNetworkPath(sk, ek);
+        if (path) {
+            return getDistance(fromTree.lat, fromTree.lng, nodeCoords[sk][0], nodeCoords[sk][1]) +
+                getPathDistance(path) +
+                getDistance(nodeCoords[ek][0], nodeCoords[ek][1], toTree.lat, toTree.lng);
+        }
+    }
+    return getDistance(fromTree.lat, fromTree.lng, toTree.lat, toTree.lng);
+}
+
+function buildRecommendedRoute() {
+    if (treeData.length <= 2) return [...treeData];
+    const remaining = treeData.slice(1);
+    const route = [treeData[0]];
+
+    while (remaining.length) {
+        const current = route[route.length - 1];
+        let nextIndex = 0, nextDistance = Infinity;
+        remaining.forEach((tree, index) => {
+            const distance = getRouteLegDistance(current, tree);
+            if (distance < nextDistance || (distance === nextDistance && tree.id < remaining[nextIndex].id)) {
+                nextDistance = distance;
+                nextIndex = index;
+            }
+        });
+        route.push(remaining.splice(nextIndex, 1)[0]);
+    }
+    return route;
+}
+
+// ── 3. CSV + MARKERS + UI RENDERING ────────────────────
+function loadTreeCSV() {
+    Papa.parse('src/trees.csv', {
+        download: true, header: true, skipEmptyLines: true,
+        error() { walkingExperienceReady.then(()=>showDataError()); },
+        async complete({ data }) {
+            await loadTreeLinks();
+            treeData = data
+                .filter(r => r['Latitude'] && r['Longitude'])
+                .map((r, i) => ({
+                    key: TreeWalkCore.stableId(r), id: i + 1, lat: parseFloat(r['Latitude']), lng: parseFloat(r['Longitude']),
+                    name: r['Common Name'] || 'Unknown Tree', scientific: r['Scientific Name'] || 'Unknown Species',
+                    family: r['Family'] || 'Unknown Family', features: r['Features'] || '',
+                    img: r['Photo Filename'] ? `photos/${r['Photo Filename']}` : null,
+                    moreInfo: getTreeLinks(r['Common Name'])
+                }));
+            treeById.clear();
+            treeSnapCache.clear();
+            treeData.forEach(tree => {
+                treeById.set(tree.id, tree);
+                treeSnapCache.set(tree.id, snapToNetwork(tree.lat, tree.lng));
+            });
+            buildMapMarkers();
+            await walkingExperienceReady;
+            initializeWalkExperience();
+        }
+    });
+}
+
+function updateMarkerStyle(id){mapView.setTreeState(id,{active:activeTreeId===id,current:typeof walk!=='undefined'&&walk.target===id,visited:visitedStops.has(id),skipped:typeof walk!=='undefined'&&walk.skipped.has(id)});}
+
+function getMoreInfoHTML(tree, alaURL) {
+    const links = [
+        ...(Array.isArray(tree.moreInfo) ? tree.moreInfo : []),
+        { label: 'Search ALA', url: alaURL }
+    ];
+    if (!links.length) return '';
+    return `
+        <div class="more-info">
+            <span class="more-info-title">More Info</span>
+            <div class="more-info-links">
+                ${links.map(link => `
+                    <a class="more-info-link" href="${escapeHTML(link.url)}" target="_blank" rel="noopener noreferrer">
+                        ${escapeHTML(link.label)} <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+// ── HTML Injector for Dedicated Detail View ──
+function getDetailsHTML(tree){
+    const idx=currentRoute.findIndex(t=>t.id===tree.id);
+    const image=tree.img?`<button class="popup-img-wrap" onclick="openLightbox(treeById.get(${tree.id}).img)" aria-label="Enlarge ${escapeHTML(tree.name)} poster">${treeImageHTML(tree,'detail')}</button>`:'';
+    return `<article class="detail-card"><div class="detail-head"><div><h2 class="detail-title">${escapeHTML(tree.name)}</h2><div class="detail-sci">${escapeHTML(tree.scientific)}</div></div><span class="detail-badge">${idx>=0?`Stop ${idx+1}`:'Explore'}</span></div>
+        ${image}<section class="feature-info"><h3 class="about-title">ABOUT</h3><div class="about-row"><span class="about-key">Family</span><span class="about-value">${escapeHTML(tree.family)}</span></div><div class="about-row"><span class="about-key">Features</span><span class="about-value">${escapeHTML(tree.features)}</span></div></section>
+        ${getMoreInfoHTML(tree,`https://bie.ala.org.au/search?q=${encodeURIComponent(tree.scientific)}`)}
+        <div class="detail-actions"><button class="text-btn symbol-action" onclick="findTreeOnMap(${tree.id})" aria-label="Find this tree on map" title="Find on map">${actionHTML('geo-alt','Map')}</button><button class="text-btn symbol-action" onclick="adjacentTree(-1)" aria-label="Previous tree" title="Previous tree" ${idx===0?'disabled':''}>${actionHTML('arrow-left','Previous')}</button><button class="text-btn symbol-action" onclick="adjacentTree(1)" aria-label="Next tree" title="Next tree" ${idx===currentRoute.length-1?'disabled':''}>${actionHTML('arrow-right','Next')}</button></div>
+        <div class="popup-btns"><button class="pb pb-visit" id="bv-${tree.id}">Mark as Visited</button></div></article>`;
+}
+
+function buildMapMarkers(){mapView.setTrees(treeData);treeData.forEach(tree=>updateMarkerStyle(tree.id));}
+function setRouteMode(mode){selectWalkMode(mode==='recommended'?'full':mode==='auto'?'nearby':mode);showBrowser();}
+
+function getRoutePointKey(point) {
+    return `${Number(point[0]).toFixed(6)},${Number(point[1]).toFixed(6)}`;
+}
+
+function getRouteSegmentKey(a, b) {
+    const ak = getRoutePointKey(a), bk = getRoutePointKey(b);
+    return ak < bk ? `${ak}|${bk}` : `${bk}|${ak}`;
+}
+
+function addPathToRepeatCounts(path, counts, coordsByKey) {
+    if (!Array.isArray(path) || path.length < 2) return;
+    for (let i = 0; i < path.length - 1; i++) {
+        const a = path[i], b = path[i + 1];
+        if (!Array.isArray(a) || !Array.isArray(b)) continue;
+        const key = getRouteSegmentKey(a, b);
+        counts.set(key, (counts.get(key) || 0) + 1);
+        if (!coordsByKey.has(key)) coordsByKey.set(key, [a, b]);
+    }
+}
+
+function buildRepeatHighlights(repeatData){
+    const features=[],labels=[],placed=[];
+    repeatData.counts.forEach((count,key)=>{
+        if(count<2)return;
+        const coords=repeatData.coordsByKey.get(key);
+        features.push({type:'Feature',geometry:{type:'LineString',coordinates:coords.map(p=>[p[1],p[0]])},properties:{count}});
+        const mid=[(coords[0][0]+coords[1][0])/2,(coords[0][1]+coords[1][1])/2];
+        const screen=mapView.project(mid);
+        if(placed.some(p=>Math.hypot(screen.x-p.x,screen.y-p.y)<72))return;
+        placed.push(screen);
+        labels.push({type:'Feature',geometry:{type:'Point',coordinates:[mid[1],mid[0]]},properties:{label:`x${count}`}});
+    });
+    return {features,labels};
+}
+
+function formatTime(mins) {
+    if (mins >= 60) {
+        const hrs = Math.floor(mins / 60); const rem = mins % 60;
+        return rem > 0 ? `${hrs} hr ${rem} min` : `${hrs} hr`;
+    }
+    return `${mins} min`;
+}
+
+function routeEndpoints(){
+    const first=currentRoute[0],last=currentRoute[currentRoute.length-1];
+    return [first,last].filter((t,i)=>t&&(i===0||t.id!==first.id)).map((t,i)=>({type:'Feature',geometry:{type:'Point',coordinates:[t.lng,t.lat]},properties:{id:t.id,label:i===0?'Start':'End',color:i===0?'#2ea043':'#ED0A00'}}));
+}
+function showEndpointLabels(duration=2800){mapView.showEndpointLabels(true);clearTimeout(endpointLabelHideTimer);endpointLabelHideTimer=setTimeout(hideEndpointLabels,duration);}
+function hideEndpointLabels(){mapView.showEndpointLabels(false);}
+
+function handleEndpointTwoFingerStart(event) {
+    if (!isSheetLayout() || event.touches?.length !== 2) return;
+    clearTimeout(endpointTwoFingerHoldTimer);
+    endpointTwoFingerHoldTimer = setTimeout(() => showEndpointLabels(3200), 650);
+}
+
+function handleEndpointTwoFingerEnd(event) {
+    if (!event.touches || event.touches.length < 2) clearTimeout(endpointTwoFingerHoldTimer);
+}
+
+const mapTouchTarget = document.getElementById('map');
+mapTouchTarget.addEventListener('touchstart', handleEndpointTwoFingerStart, { passive: true });
+mapTouchTarget.addEventListener('touchmove', handleEndpointTwoFingerEnd, { passive: true });
+mapTouchTarget.addEventListener('touchend', handleEndpointTwoFingerEnd, { passive: true });
+mapTouchTarget.addEventListener('touchcancel', handleEndpointTwoFingerEnd, { passive: true });
+
+function generateSmartRoutes(options = {}) { drawWalkingRoute(options); }
+
+function updateProgress() {
+    const p = TreeWalkCore.progress(currentRoute,visitedStops,walk.skipped);
+    document.getElementById('progress-fill').style.width=p.percent+'%';
+    document.getElementById('progress-text').textContent=`${p.done}/${p.total}`;
+}
+
+// ── 5. LIVE PROXIMITY TOOLTIPS & DISTANCES ─────────────────
+function getBearingDegrees(from, to) {
+    const lat1 = from.lat * DEG, lat2 = to.lat * DEG;
+    const deltaLng = (to.lng - from.lng) * DEG;
+    const y = Math.sin(deltaLng) * Math.cos(lat2);
+    const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
+    return (Math.atan2(y, x) / DEG + 360) % 360;
+}
+
+function triggerNearbyHaptic(distance) {
+    if (!customSettings.haptics || typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
+    const now = Date.now();
+    if (now - lastHapticAt < 7000) return;
+    lastHapticAt = now;
+    navigator.vibrate(distance <= 10 ? [35, 45, 35] : 28);
+}
+
+function updateHapticProximity(proximityItems) {
+    if (!customSettings.haptics) return;
+    proximityItems.forEach(({ tree, distance }) => {
+        if (distance > 25) hapticAlertedTreeIds.delete(tree.id);
+    });
+
+    const nearest = proximityItems
+        .filter(item => item.distance <= 20 && !hapticAlertedTreeIds.has(item.tree.id))
+        .sort((a, b) => a.distance - b.distance)[0];
+
+    if (!nearest) return;
+    hapticAlertedTreeIds.add(nearest.tree.id);
+    triggerNearbyHaptic(nearest.distance);
+}
+
+function updateDynamicGPSContexts(){
+    if(!userLoc){clearNearbyLabels();return;}
+    const proximity=treeData.map(tree=>({tree,distance:getDistance(userLoc.lat,userLoc.lng,tree.lat,tree.lng)}));
+    if(walk.status!=='active'&&userLoc.accuracy<=35)updateHapticProximity(proximity);
+    const nearby=customSettings.nearbyLabels&&userLoc.accuracy<=50?proximity.filter(p=>p.distance<=NEARBY_LABEL_DISTANCE).sort((a,b)=>a.distance-b.distance).slice(0,NEARBY_LABEL_LIMIT):[];
+    mapView.setNearbyLabels(nearby.map(({tree,distance})=>({type:'Feature',geometry:{type:'Point',coordinates:[tree.lng,tree.lat]},properties:{label:`${tree.name} - ${Math.round(distance)}m`}})));
+    if(activeTree)updateDetailMiniCoords(activeTree);
+}
+
+const stopsList = document.getElementById('stops-list');
+const detailViewArea = document.getElementById('tree-detail-view');
+const detailContentArea = document.getElementById('detail-content-area');
+const detailMiniCoords = document.getElementById('detail-mini-coords');
+
+function updateDetailMiniCoords(tree) {
+    if (!detailMiniCoords || !tree) return;
+    const leg = walkingLeg(walkOrigin(),tree);
+    detailMiniCoords.innerHTML = userLoc&&userLoc.accuracy<=50 ? symbolMetric(leg.network?'signpost-split':'arrow-up-right',formatDistance(leg.distance),`${formatDistance(leg.distance)} ${leg.network?'via paths':'direct estimate'}`) : actionHTML(userLoc?'exclamation-triangle':'geo-alt',userLoc?'Weak GPS':'GPS off');
+    detailMiniCoords.title=userLoc&&userLoc.accuracy<=50?'Walking distance from your location.':userLoc?'Waiting for accurate GPS.':'Enable location to see distance from you.';
+}
+function fitDetailSheetToContent() { if(isSheetLayout())setSheetState('expanded'); }
+function expandDetailSheetForImage() { }
+
+function openAboutModal() {
+    const modal = document.getElementById('about-modal');
+    const body = document.getElementById('welcome-content');
+    if (body && welcomeHTML) body.innerHTML = welcomeHTML;
+    dialogReturnFocus = document.activeElement;
+    modal?.classList.add('show');
+    document.getElementById('about-modal-close')?.focus();
+}
+
+function closeAboutModal() {
+    try { localStorage.setItem(WELCOME_SEEN_KEY, 'true'); } catch (e) {}
+    const wasOpen = document.getElementById('about-modal')?.classList.contains('show');
+    document.getElementById('about-modal')?.classList.remove('show');
+    if(wasOpen)dialogReturnFocus?.focus();
+}
+
+function syncCardVisitedState(id) { renderSidebar(); }
+
+function updateDetailVisitButton(id) {
+    const btn = document.getElementById(`bv-${id}`);
+    if (!btn) return;
+    const isVisited = visitedStops.has(id);
+    btn.className = isVisited ? 'pb pb-unvisit symbol-action' : 'pb pb-visit symbol-action';
+    btn.innerHTML = isVisited
+        ? actionHTML('arrow-counterclockwise','Undo visit')
+        : actionHTML('check2-circle','Mark visited');
+    btn.setAttribute('aria-label',isVisited?'Mark this tree unvisited':'Mark this tree visited');
+}
+
+function renderSidebar() { renderTreeCards(); updateProgress(); }
+
+stopsList.addEventListener('click', event => {
+    const card = event.target.closest('.tree-card');
+    if (!card) return;
+    const id = Number(card.dataset.treeId);
+    const tree = treeById.get(id);
+    if (!tree) return;
+    activateTree(id);
+    flyToVisible([tree.lat, tree.lng], 19, {animate: motionOK(), duration: 0.4});
+});
+
+function activateTree(id, options = {}) {
+    if(!options.walking){
+        walk.follow=false;
+        if(walkView!=='detail')detailReturnView=walkView==='browse'?'browse':walk.status==='active'?'walking':'home';
+    }
+    walkView=options.walking?'walking':'detail';
+    applyWalkView();
+    updateNavigation();
+    const prevActiveId = activeTreeId;
+    activeTreeId = id;
+    activeTree = treeById.get(id) || null;
+    
+    if (prevActiveId) updateMarkerStyle(prevActiveId);
+    if (activeTreeId) updateMarkerStyle(activeTreeId);
+
+    // Swap Panel Views
+
+    
+    const tree = activeTree;
+    if (tree) {
+        updateDetailMiniCoords(tree);
+        detailContentArea.innerHTML = getDetailsHTML(tree);
+        
+        // Setup Visit Toggle Button
+        const btn = document.getElementById(`bv-${id}`);
+        if (btn) {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                toggleVisited(id);
+                updateDetailVisitButton(id);
+            };
+        }
+        
+        updateDetailVisitButton(id);
+        if(!options.passive){
+            const heading=detailContentArea.querySelector('h2');heading?.setAttribute('tabindex','-1');heading?.focus({preventScroll:true});
+            document.querySelector('.panel-body').scrollTop=0;
+            fitDetailSheetToContent();
+        }
+    }
+}
+
+window.backToList = () => {
+    const destination=walkView==='detail'?detailReturnView:walk.status==='active'?'walking':'home';
+    if(destination==='walking'){
+        walkingDetailsOpen=false;walkView='walking';renderWalkingDetails();setWalkView('walking');
+        if(isSheetLayout())setSheetState('peek');
+    }else{
+        const previous=activeTreeId;activeTreeId=null;activeTree=null;
+        if(previous)updateMarkerStyle(previous);
+        if(destination==='browse')showBrowser();else showHome();
+    }
+};
+
+function handleFeaturelessMapClick(){
+    closeUtility();
+    document.getElementById('custom-panel')?.classList.remove('show');syncCustomSettingsUI();
+}
+
+// ── 7. LIGHTBOX ──────────────────────────────────────────────
+window.openLightbox = async src => {
+    expandDetailSheetForImage();
+    const lb = document.getElementById('lightbox');
+    dialogReturnFocus = document.activeElement;
+    document.getElementById('lightbox-img').alt = activeTree ? activeTree.name : 'Tree photograph';
+    document.getElementById('lightbox-img').onerror = () => showStatus('Full-size photo unavailable. The smaller detail photo is still available.');
+    document.getElementById('lightbox-img').src = await getOptimizedImageSrc(src);
+    lb.style.display = 'flex'; lb.querySelector('button').focus(); requestAnimationFrame(() => lb.style.opacity = '1');
+};
+window.closeLightbox = () => {
+    const lb = document.getElementById('lightbox');
+    if(lb.style.display==='flex')dialogReturnFocus?.focus();
+    lb.style.opacity = '0'; setTimeout(() => lb.style.display = 'none', 250);
+};
+
+// ── 8. LEAFLET SIMPLE LOCATE INTEGRATION ──────────────────────
+let locationTracker = null;
+const gpsButton = document.getElementById('gps-toggle');
+
+// Helper functions
+function clearNearbyLabels(){mapView.setNearbyLabels([]);}
+
+function scheduleGPSRefresh(forceRouteRefresh = false) {
+    if (forceRouteRefresh) lastUserRouteRenderLoc = null;
+    if (gpsUpdateQueued) return;
+    gpsUpdateQueued = true;
+    requestAnimationFrame(() => {
+        gpsUpdateQueued = false;
+        updateDynamicGPSContexts();
+        maybeRefreshWalkingRoute(forceRouteRefresh);
+    });
+}
+
+function resetGPSContext() {
+    userLoc = null;
+    document.body.dataset.gpsQuality='off';
+    const originSelect=document.getElementById('walk-start');
+    const gpsOption=originSelect.querySelector('[value="gps"]');
+    if(gpsOption){gpsOption.disabled=true;gpsOption.textContent='Current location - enable GPS';if(originSelect.value==='gps')originSelect.value=String(walk.startId);}
+    if(typeof walk !== 'undefined') { walk.follow = false; updateNavigation(); }
+    if (activeTree) updateDetailMiniCoords(activeTree);
+    lastUserRouteRenderLoc = null;
+    clearNearbyLabels();
+    generateSmartRoutes({ force: true });
+}
+
+locationTracker = new LocationTracker({
+    onRender:(location,heading)=>mapView.setGPS(location,heading),
+    button: gpsButton,
+    geofenceCenter: UOW_CENTER,
+    geofenceRadius: 2000,
+    highAccuracy: true,
+    timeout: 15000,
+    maximumAge: 5000,
+    onLocationFound: (location) => {
+        const isFirstFix = !userLoc;
+        userLoc = {
+            lat: location.lat,
+            lng: location.lng,
+            accuracy: location.accuracy,
+            heading: location.heading,
+            timestamp: location.timestamp
+        };
+
+        handleWalkingLocation({...userLoc,timestamp:location.timestamp},isFirstFix);
+        scheduleGPSRefresh();
+    },
+    onLocationError: (error) => {
+        resetGPSContext();
+        if (error?.type === 'stopped') return;
+        showStatus(error?.code === 1 ? 'Location permission denied. Choose a starting tree to walk without GPS.' : 'GPS unavailable. Choose a starting tree or try the location button again.',false,'gps');
+    },
+    onGeofenceViolation: () => {
+        showStatus('You are outside campus. Choose a starting tree to preview your walk.',false,'gps');
+    }
+});
+
+bindCustomSettings();
+loadWelcomeContent();
+
+document.getElementById('about-modal-close')?.addEventListener('click', closeAboutModal);
+document.getElementById('about-modal')?.addEventListener('click', event => {
+    if (event.target.id === 'about-modal') closeAboutModal();
+});
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeAboutModal();
+});
+
+document.getElementById('home-view').addEventListener('click', () => {
+    fitHomeView({animate: motionOK(), duration: 0.4, maxZoom: 18});
+});
+
+</script>
+<script src="./src/walk-experience.js"></script>
+</body>
+</html>
