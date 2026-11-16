@@ -752,7 +752,7 @@ body.outdoor .progress-fill {
 .text-btn:hover { background:var(--card-bg); }
 #walk-home { display:grid; gap:.5rem; padding-block:.25rem; }
 .eyebrow { color:var(--text-muted); font-size:.765625rem; margin:0; }
-#walk-home h1 { font-size:clamp(1.3125rem,6.125cqi,1.75rem); line-height:1.2; margin:0; letter-spacing:-.025em; }
+.walk-trees-header h1 { font-size:clamp(1.3125rem,6.125cqi,1.75rem); line-height:1.2; margin:0; letter-spacing:-.025em; }
 .home-description { margin:0; color:var(--text-muted); max-inline-size:32ch; }
 .home-start { inline-size:100%; font-size:.875rem; padding:.9rem; margin-block:.25rem; }
 .walk-planner { display:block; padding:0; margin:0; border:0; }

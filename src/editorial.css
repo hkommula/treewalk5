@@ -381,12 +381,12 @@ body.outdoor[data-gps-quality=weak] .panel-header .nav-status { color:#f2cd9b; }
     .arrival-setting .setting-label>.lucide-icon { display:none; }
 }
 #walk-home,.sheet-layout #walk-home { gap:.375rem; }
-#walk-home h1,.sheet-layout #walk-home h1 { font-size:clamp(1.09375rem,4.375cqi,1.421875rem); }
+.walk-trees-header h1,.sheet-layout .walk-trees-header h1 { font-size:clamp(1.09375rem,4.375cqi,1.421875rem); }
 @media (min-width:48rem) {
     body:not(.sheet-layout) { --space:1.25rem; }
     body:not(.sheet-layout)[data-walk-view=home] #ui-panel { height:auto; max-block-size:calc(var(--viewport-height) - 2 * var(--space)); }
     body:not(.sheet-layout) #walk-home { gap:.75rem; }
-    body:not(.sheet-layout) #walk-home h1 { font-size:clamp(1.3125rem,6.125cqi,1.75rem); }
+    body:not(.sheet-layout) .walk-trees-header h1 { font-size:clamp(1.3125rem,6.125cqi,1.75rem); }
     body:not(.sheet-layout) .home-description { font-size:.8203125rem; }
     body:not(.sheet-layout) .walk-overview { padding:.75rem; gap:.5rem; border-radius:.75rem; background:#f0f2f6; }
     body:not(.sheet-layout) #route-estimate { flex-wrap:nowrap; gap:clamp(.5rem,2cqi,.875rem); white-space:nowrap; }

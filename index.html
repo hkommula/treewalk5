@@ -305,10 +305,12 @@
     <div class="panel-body">
         <section id="walk-summary" hidden tabindex="-1" aria-label="Walk summary"></section>
         <section id="walk-home" aria-label="Start a campus walk">
-            <div class="home-kicker"><p class="eyebrow">Wollongong campus</p></div>
-            <h1><span>UOW</span> Tree Walk</h1>
-            <p class="home-description">Explore the living campus.</p>
-            <div id="home-navigation-slot"></div>
+            <div id="home-header-slot">
+                <header id="walk-trees-header" class="walk-trees-header">
+                    <div class="walk-trees-brand"><p class="eyebrow">Wollongong campus</p><h1><span>UOW</span> Tree Walk</h1><p class="home-description">Explore the living campus.</p></div>
+                    <nav class="browser-navigation" aria-label="Walk and trees"><button id="close-browser" class="symbol-action" aria-label="Back to walk" title="Back to walk" aria-current="page"><i class="bi bi-signpost-split" aria-hidden="true"></i><span>Walk</span></button><button id="browser-trees-tab" class="symbol-action"><i class="bi bi-tree" aria-hidden="true"></i><span>Trees</span><small id="browser-tree-total" aria-hidden="true"></small></button></nav>
+                </header>
+            </div>
             <div class="walk-overview"><p id="home-walk-type" class="selected-walk">Quick Walk</p><p class="walk-note" id="route-estimate">Preparing your walk&hellip;</p></div>
             <button class="walk-btn primary home-start symbol-action" id="start-walk" disabled><i class="bi bi-play-fill" aria-hidden="true"></i><span>Start walk</span></button>
             <p id="saved-walk-note" class="walk-note" hidden>Progress saved on this device.</p>
@@ -335,7 +337,7 @@
             <button id="walk-review" class="text-btn symbol-action" hidden aria-label="View walk summary"><i class="bi bi-bar-chart" aria-hidden="true"></i><span>Summary</span></button>
         </section>
         <div id="browse-controls" hidden>
-            <div class="browser-topline"><div class="browser-brand"><h2><span>UOW</span> Tree Walk</h2><p>Explore the campus tree collection</p></div><nav class="browser-navigation" aria-label="Walk and trees"><button id="close-browser" class="symbol-action" aria-label="Back to walk" title="Back to walk"><i class="bi bi-signpost-split" aria-hidden="true"></i><span>Walk</span></button><button id="browser-trees-tab" class="symbol-action" aria-current="page"><i class="bi bi-tree" aria-hidden="true"></i><span>Trees</span><small id="browser-tree-total" aria-hidden="true"></small></button></nav></div>
+            <div id="browser-header-slot"></div>
             <div class="list-tools">
                 <div class="browse-search"><i class="bi bi-search" aria-hidden="true"></i><label class="field"><span class="sr-only">Find a tree by common or scientific name</span><input id="tree-search" type="search" placeholder="Search by name or species" autocomplete="off"></label><span id="browser-sort-slot"></span></div>
                 <div class="filters" role="group" aria-label="Filter trees">

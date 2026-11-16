@@ -10,7 +10,24 @@ try{
     await c.call('Page.navigate',{url:'http://127.0.0.1:8765/?browser-design-qa'});
     await c.waitFor('typeof walkingReady!=="undefined"&&walkingReady&&mapView.ready&&map.loaded()',30000);
     await c.call('Page.removeScriptToEvaluateOnNewDocument',{identifier:init.identifier});
-    assert.ok(await c.evaluate('document.getElementById("home-navigation-slot").contains(document.querySelector(".browser-navigation"))&&document.getElementById("close-browser").getAttribute("aria-current")==="page"'));
+    assert.ok(await c.evaluate('document.getElementById("home-header-slot").contains(document.getElementById("walk-trees-header"))&&document.getElementById("close-browser").getAttribute("aria-current")==="page"'));
+    await c.evaluate('window.sharedHeader=document.getElementById("walk-trees-header");window.sharedNavigation=sharedHeader.querySelector(".browser-navigation")');
+    for(const [width,height,font]of [[320,640,100],[375,812,100],[430,932,100],[640,360,100],[768,1024,100],[1440,960,100],[320,640,200],[1440,960,200]]){
+        await c.call('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<1024});
+        await c.evaluate(`document.documentElement.style.fontSize='${font}%';showHome()`);await settle();
+        const state=await c.evaluate('JSON.stringify({route:currentRoute.map(t=>t.key),target:walk.target,elapsed:walk.elapsed,skipped:[...walk.skipped],visited:[...visitedStops]})');
+        const home=await c.evaluate(`(()=>{const h=sharedHeader,r=h.getBoundingClientRect(),s=getComputedStyle(h.querySelector('h1'));return {font:s.fontSize,weight:s.fontWeight,colour:s.color,text:h.querySelector('h1').textContent,bounds:r.left>=0&&r.right<=visualViewport.width+1,overflow:h.scrollWidth>h.clientWidth}})()`);
+        await c.evaluate('document.getElementById("browser-trees-tab").focus();document.getElementById("browser-trees-tab").click()');await settle();
+        const browser=await c.evaluate(`(()=>{const h=document.getElementById('walk-trees-header'),r=h.getBoundingClientRect(),s=getComputedStyle(h.querySelector('h1'));return {font:s.fontSize,weight:s.fontWeight,colour:s.color,text:h.querySelector('h1').textContent,bounds:r.left>=0&&r.right<=visualViewport.width+1,overflow:h.scrollWidth>h.clientWidth,same:h===sharedHeader&&h.querySelector('.browser-navigation')===sharedNavigation,slot:h.parentElement.id,focus:document.activeElement.id,headings:document.querySelectorAll('#ui-panel h1').length,selected:document.querySelector('.browser-navigation [aria-current=page]').id}})()`);
+        for(const key of ['font','weight','colour','text'])assert.equal(browser[key],home[key],key+' is shared');
+        assert.ok(home.bounds&&browser.bounds&&!home.overflow&&!browser.overflow,`${width}@${font}: shared header fits`);
+        assert.ok(browser.same);assert.equal(browser.slot,'browser-header-slot');assert.equal(browser.headings,1);assert.equal(browser.focus,'browser-trees-tab');assert.equal(browser.selected,'browser-trees-tab');
+        await c.evaluate('document.getElementById("close-browser").focus();document.getElementById("close-browser").click()');await settle();
+        assert.ok(await c.evaluate('sharedHeader.parentElement.id==="home-header-slot"&&document.activeElement.id==="close-browser"&&document.querySelector(".browser-navigation [aria-current=page]").id==="close-browser"'));
+        assert.equal(await c.evaluate('JSON.stringify({route:currentRoute.map(t=>t.key),target:walk.target,elapsed:walk.elapsed,skipped:[...walk.skipped],visited:[...visitedStops]})'),state,'shared header navigation preserves the walk');
+        console.log(`${width}x${height}@${font}%: one shared header, matching typography, focus and unchanged walk passed.`);
+    }
+    await c.evaluate('document.documentElement.style.fontSize=""');await c.call('Emulation.setDeviceMetricsOverride',{width:1440,height:960,deviceScaleFactor:1,mobile:false});await settle();
     await c.evaluate('document.getElementById("browser-trees-tab").click()');assert.equal(await c.evaluate('walkView'),'browse');
     await c.evaluate('selectWalkMode("full",false);showBrowser()');
     const session=await c.evaluate('JSON.stringify({route:currentRoute.map(t=>t.key),target:walk.target,elapsed:walk.elapsed,skipped:[...walk.skipped],visited:[...visitedStops]})');
@@ -62,7 +79,7 @@ try{
     }
     await c.call('Emulation.setDeviceMetricsOverride',{width:320,height:640,deviceScaleFactor:1,mobile:true});
     await c.call('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:2});await settle();
-    assert.equal(await c.evaluate('getComputedStyle(document.getElementById("tree-search")).fontSize'),'16px');
+    assert.equal(await c.evaluate('getComputedStyle(document.getElementById("tree-search")).fontSize'),'14px');
     assert.ok(await c.evaluate('document.querySelector(".panel-body").scrollWidth<=document.querySelector(".panel-body").clientWidth'));
     await c.call('Emulation.setTouchEmulationEnabled',{enabled:false});await c.call('Emulation.setDeviceMetricsOverride',{width:1440,height:960,deviceScaleFactor:1,mobile:false});await settle();
     for(const [width,height,insets]of [[390,844,{top:44,bottom:34,left:0,right:0}],[844,390,{top:0,bottom:21,left:44,right:44}]]){

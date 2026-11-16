@@ -22,11 +22,10 @@ button,input,select { font-weight:500; }
 .walk-btn.primary:hover { background:#c90c05; filter:none; }
 .walk-btn:hover,.detail-action:hover { filter:none; background:var(--card-bg-hover); }
 .text-btn { color:var(--text-main); font-size:.765625rem; }
-.home-kicker { display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
-.eyebrow,.home-kicker .eyebrow { font-size:.65625rem; font-weight:650; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted); }
+.eyebrow { font-size:.65625rem; font-weight:650; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted); }
 body[data-walk-view="home"] .panel-header { display:none; }
 #walk-home { gap:clamp(.45rem,1.8cqi,.8rem); padding-block:.1rem .3rem; }
-#walk-home h1 { max-inline-size:100%; font-weight:700; font-size:clamp(1.44375rem,6.5625cqi,2.05625rem); letter-spacing:-.045em; line-height:1.12; margin:.15rem 0; }
+.walk-trees-header h1 { max-inline-size:100%; font-weight:700; font-size:clamp(1.44375rem,6.5625cqi,2.05625rem); letter-spacing:-.045em; line-height:1.12; margin:.15rem 0; }
 .home-description { font-size:clamp(.765625rem,3.4125cqi,.875rem); line-height:1.7; color:var(--text-muted); }
 .walk-overview { padding-block:.6rem; border-block:1px solid var(--border-subtle); display:grid; gap:.4rem; }
 .selected-walk { margin:0; color:var(--text-main); font-size:.875rem; font-weight:650; }
@@ -144,9 +143,7 @@ body.outdoor .preview-stop:hover { color:var(--uow-bright-blue); }
 body.outdoor[data-gps-quality="weak"] .nav-status { color:#805000; }
 @container (min-width:36rem) {
     .sheet-layout #walk-home { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:.4rem 1.5rem; align-items:center; }
-    .sheet-layout .home-kicker { grid-column:1; grid-row:1; }
-    .sheet-layout #walk-home h1 { grid-column:1; grid-row:2; font-size:clamp(1.575rem,4.375cqi,2.31875rem); }
-    .sheet-layout .home-description { grid-column:1; grid-row:3; }
+    .sheet-layout #home-header-slot { grid-column:1; grid-row:1 / span 3; align-self:start; }
     .sheet-layout .walk-overview { grid-column:2; grid-row:1; }
     .sheet-layout #start-walk { grid-column:2; grid-row:2; }
     .sheet-layout .walk-planner { grid-column:2; grid-row:3; padding:0; margin:0; border:0; }

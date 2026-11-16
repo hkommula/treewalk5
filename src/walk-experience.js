@@ -40,9 +40,9 @@ function showDataError(){
 function applyWalkView(){
     document.body.dataset.walkView=walkView;
     document.body.dataset.walkStatus=walk.status;
-    const navigation=document.querySelector('.browser-navigation'),navigationSlot=walkView==='browse'?document.querySelector('.browser-topline'):$('home-navigation-slot');
+    const header=$('walk-trees-header'),navigation=header.querySelector('.browser-navigation'),headerSlot=walkView==='browse'?$('browser-header-slot'):$('home-header-slot');
     const navigationFocus=navigation.contains(document.activeElement)?document.activeElement:null;
-    if(navigation.parentElement!==navigationSlot)navigationSlot.append(navigation);
+    if(header.parentElement!==headerSlot)headerSlot.append(header);
     for(const [id,selected]of [['close-browser',walkView!=='browse'],['browser-trees-tab',walkView==='browse']]){
         if(selected)$(id).setAttribute('aria-current','page');else $(id).removeAttribute('aria-current');
     }
@@ -863,6 +863,7 @@ adaptiveObserver.observe($('map'));
 for(const id of ['map-tools','walk-menu','custom-panel'])adaptiveObserver.observe($(id));
 adaptiveObserver.observe(document.querySelector('.detail-nav'));
 adaptiveObserver.observe($('walk-home'));
+adaptiveObserver.observe($('walk-trees-header'));
 adaptiveObserver.observe($('browse-controls'));adaptiveObserver.observe($('browser-list-meta'));
 map?.on('style.load',()=>requestAnimationFrame(scheduleLayout));
 $('route-options').addEventListener('toggle',scheduleLayout);

@@ -21,7 +21,7 @@ html { color-scheme:dark; }
 body.outdoor,body[data-map-theme=aerial] {
     --glass-filter:blur(12px) saturate(120%) brightness(.30);
 }
-#ui-panel,#map-tools,#walk-menu,.tree-focus-label,#arrival,#app-status,
+#ui-panel,#map-tools,#walk-menu,#arrival,#app-status,
 .map-controls>:is(.icon-btn,#resume-follow),.map-zoom-group {
     background:var(--glass-fill); border:1px solid var(--glass-edge);
     border-radius:var(--radius); box-shadow:var(--glass-shadow);
@@ -35,8 +35,8 @@ body.outdoor,body[data-map-theme=aerial] {
 .sheet-layout #map-tools { border-radius:var(--radius); }
 #ui-panel .panel-header { background:rgba(0,22,65,.32); }
 .sheet-layout #drag-handle { background:#a8b9ce; }
-#walk-home .eyebrow { color:#d4e0ed; font-weight:500; }
-#walk-home h1 { color:var(--text-main); }
+.walk-trees-header .eyebrow { color:#d4e0ed; font-weight:500; margin:0 0 .375rem; }
+.walk-trees-header h1 { color:var(--text-main); }
 .home-description,.walk-note { color:var(--text-muted); }
 /* Flatten the existing estimate wrapper visually, retaining every metric's
    accessible name. Flex wrapping accommodates mobile and enlarged text. */
@@ -133,17 +133,10 @@ input::placeholder { color:var(--text-muted); opacity:1; }
 .compact-map .map-zoom-group .icon-btn:first-child { border-radius:var(--radius) 0 0 var(--radius); }
 .compact-map .map-zoom-group .icon-btn:last-child { border-radius:0 var(--radius) var(--radius) 0; }
 .map-controls button::after { background:rgba(0,22,65,.78); border-radius:.875rem; border-color:var(--glass-edge); }
-.tree-focus-label:is(:hover,:active) { background:var(--glass-hover); }
-.tree-focus-label { padding:.375rem .625rem; border-radius:.875rem; text-align:start; }
-.focus-label-content { display:grid; gap:.125rem; min-inline-size:0; }
-.focus-label-name { font-size:.765625rem; line-height:1.3; font-weight:600; }
-.tree-focus-label .marker-stats { display:flex; flex-wrap:wrap; align-items:center; gap:.25rem .5rem; margin:0; padding:0; background:transparent; color:rgba(255,255,255,.78); font-size:.65625rem; font-weight:500; line-height:1.25; }
-.marker-stat { display:inline-flex; align-items:center; gap:.5rem; white-space:nowrap; }
-.marker-stat+.marker-stat { border-inline-start:1px solid rgba(255,255,255,.2); padding-inline-start:.5rem; }
-.marker-stats .lucide-icon { inline-size:.8125rem; block-size:.8125rem; }
-.metric-compact { display:none; }
-.tree-focus-label[data-compact=true] .metric-full { display:none; }
-.tree-focus-label[data-compact=true] .metric-compact { display:inline; }
+.tree-focus-label:is(:hover,:active) { background:rgba(8,35,61,.94); }
+.tree-focus-label { gap:.5rem; padding:.25rem .375rem; border:1px solid rgba(154,200,229,.28); border-radius:.75rem; background:rgba(0,22,41,.85); color:var(--text-main); box-shadow:0 .125rem .5rem rgba(0,10,30,.1); text-align:start; }
+.focus-label-content { display:block; flex:1 1 auto; min-inline-size:0; max-inline-size:clamp(8rem,38vi,15rem); }
+.focus-label-name { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.765625rem; line-height:1.3; font-weight:600; }
 .lucide-tree-pine { -webkit-mask:url(icons/tree-pine.svg) center/contain no-repeat; mask:url(icons/tree-pine.svg) center/contain no-repeat; }
 .lucide-circle-check { -webkit-mask:url(icons/circle-check.svg) center/contain no-repeat; mask:url(icons/circle-check.svg) center/contain no-repeat; }
 .lucide-circle { -webkit-mask:url(icons/circle.svg) center/contain no-repeat; mask:url(icons/circle.svg) center/contain no-repeat; }
@@ -226,14 +219,12 @@ body[data-walk-view=browse] #ui-panel {
     -webkit-backdrop-filter:blur(12px) saturate(120%); backdrop-filter:blur(12px) saturate(120%);
 }
 body[data-walk-view=browse] .panel-header { display:none; }
-.browser-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.75rem; }
-.browser-brand { flex:1 1 9rem; min-inline-size:0; }
-.browser-brand h2 { margin:0; color:#fff; font-size:clamp(.875rem,4.375cqi,1.3125rem); line-height:1.3; letter-spacing:-.035em; }
-.browser-brand h2>span { color:#ed0a00; }
-#walk-home h1>span { color:#ed0a00; }
-#home-navigation-slot:not(:empty)~#browse-trees { display:none; }
+.walk-trees-header { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.75rem; }
+.walk-trees-brand { flex:1 1 9rem; min-inline-size:0; }
+.walk-trees-header h1>span { color:#ed0a00; }
+#home-header-slot:not(:empty)~#browse-trees { display:none; }
 body[data-walk-view=home] #browser-tree-total { display:none; }
-.browser-brand p { margin:.375rem 0 0; font-size:.765625rem; color:#c6d8e5; line-height:1.4; }
+.walk-trees-header .home-description { margin:.375rem 0 0; color:#c6d8e5; }
 .browser-navigation { display:flex; gap:.375rem; }
 .browser-navigation button { min-inline-size:var(--touch); min-block-size:var(--touch); padding:.375rem .625rem; background:transparent; border:1px solid transparent; border-radius:.75rem; color:#dce9f2; font-size:.765625rem; font-weight:600; }
 .browser-navigation button:hover { background:rgba(255,255,255,.07); }
@@ -272,16 +263,10 @@ body[data-walk-view=browse] #stops-list .tree-card { grid-template-columns:clamp
 .card-details:hover { background:rgba(255,255,255,.06); color:#fff; }
 .map-controls .map-compass { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:0; font-size:.6015625rem; line-height:1; }
 .map-compass>.bi { color:#ed0a00; font-size:.875rem; transform:rotate(var(--map-bearing,0deg)); transition:transform .18s ease; }
-.focus-label-media { display:grid; flex:none; inline-size:clamp(2.75rem,8vi,3.25rem); aspect-ratio:1; border-radius:.5rem; overflow:hidden; background:rgba(160,193,210,.12); }
+.focus-label-media { display:grid; flex:none; inline-size:clamp(2rem,6vi,2.375rem); aspect-ratio:1; border-radius:.5rem; overflow:hidden; background:rgba(160,193,210,.12); }
 .focus-label-media>* { grid-area:1/1; }
 .focus-label-media>.bi { place-self:center; color:#b7d1be; }
 .focus-label-media img { inline-size:100%; block-size:100%; object-fit:cover; }
-.tree-focus-label[data-preview=true] { gap:.625rem; padding:.625rem; border:1px solid rgba(154,200,229,.45); background:rgba(0,22,41,.85); }
-.tree-focus-label[data-preview=true] .focus-label-content { flex:1 1 auto; }
-.tree-focus-label[data-preview=true] .focus-label-name { overflow-wrap:anywhere; }
-.tree-focus-label[data-preview=true][data-compact=true] .marker-stat:first-child { display:none; }
-.tree-focus-label[data-preview=true][data-compact=true] .marker-stat:nth-child(2) { border-inline-start:0; padding-inline-start:0; }
-.tree-focus-label[data-preview=true][data-compact=true] .marker-stat:last-child .metric-compact { display:none; }
 .focus-label-chevron { flex:none; font-size:.765625rem; color:#c6d8e5; }
 @container browser-tools (max-width:22rem) {
     #browse-controls .filter-btn>.bi { display:none; }
@@ -292,10 +277,10 @@ body[data-walk-view=browse] #stops-list .tree-card { grid-template-columns:clamp
 @media (min-width:48rem) {
     .browser-navigation { flex-basis:100%; }
 }
-.sheet-layout .browser-brand { flex-basis:8rem; }
+.sheet-layout .walk-trees-brand { flex-basis:8rem; }
 .sheet-layout.browser-sort-embedded #browser-tree-total { display:inline; font-size:.65625rem; }
-.sheet-layout .browser-brand p { display:none; }
-.sheet-layout .browser-topline { gap:.375rem; }
+.sheet-layout .walk-trees-header .eyebrow { display:none; }
+.sheet-layout .walk-trees-header { gap:.375rem; }
 .sheet-layout .browser-navigation { flex-basis:auto; gap:.125rem; }
 .sheet-layout .browser-navigation button { padding:.25rem .375rem; font-size:.7109375rem; }
 .sheet-layout .browser-navigation .bi { display:none; }
@@ -316,10 +301,10 @@ body[data-walk-view=browse] #stops-list .tree-card { grid-template-columns:clamp
     .sheet-layout #browser-sort-slot select { inline-size:5.5rem; }
 }
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
-    body[data-walk-view=browse] #ui-panel,.tree-focus-label[data-preview=true] { background:#001629; }
+    body[data-walk-view=browse] #ui-panel,.tree-focus-label { background:#001629; }
 }
 @media (prefers-reduced-transparency:reduce) {
-    body[data-walk-view=browse] #ui-panel,.tree-focus-label[data-preview=true] { background:#001629; -webkit-backdrop-filter:none; backdrop-filter:none; }
+    body[data-walk-view=browse] #ui-panel,.tree-focus-label { background:#001629; -webkit-backdrop-filter:none; backdrop-filter:none; }
 }
 
 /* Compact planner: native disclosure and selects retain their existing IDs. */

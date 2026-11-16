@@ -87,7 +87,7 @@
                     canvasContextAttributes:{antialias:false},fadeDuration:100,
                     style:{version:8,glyphs:GLYPHS,sources:{},layers:[{id:'background',type:'background',paint:{'background-color':'#001641'}}]}});
                 this.focusLabel=document.createElement('button');this.focusLabel.className='tree-focus-label';this.focusLabel.type='button';this.focusLabel.hidden=true;
-                this.focusLabel.innerHTML='<span class="focus-label-media" aria-hidden="true" hidden><i class="bi bi-tree"></i><img alt="" loading="lazy" decoding="async" width="160" height="160" hidden></span><span class="focus-label-content"><span class="focus-label-name"></span><span class="marker-stats" aria-hidden="true"></span></span><i class="focus-label-chevron bi bi-chevron-right" aria-hidden="true" hidden></i>';this.map.getContainer().append(this.focusLabel);
+                this.focusLabel.innerHTML='<span class="focus-label-media" aria-hidden="true"><i class="bi bi-tree"></i><img alt="" loading="lazy" decoding="async" width="160" height="160" hidden></span><span class="focus-label-content"><span class="focus-label-name"></span></span><i class="focus-label-chevron bi bi-chevron-right" aria-hidden="true"></i>';this.map.getContainer().append(this.focusLabel);
                 this.focusLabel.querySelector('img').addEventListener('error',event=>{event.target.hidden=true;});
                 this.focusLabel.addEventListener('click',event=>{event.stopPropagation();if(this.labelTree)(this.options.onTreePreview||this.options.onTreeClick)?.(this.labelTree.id);});
                 this.focusLabelObserver=new ResizeObserver(()=>this.scheduleFocusLabel());this.focusLabelObserver.observe(this.focusLabel);
@@ -256,26 +256,18 @@
             if(!tree||!this.ready||this.contextLost||this.unavailable){label.hidden=true;return;}
             this.labelTree=tree;
             const preview=this.browsing&&this.selectedId===tree.id;
-            label.dataset.preview=String(preview);label.querySelector('.focus-label-media').hidden=!preview;label.querySelector('.focus-label-chevron').hidden=!preview;
-            const photo=preview?this.options.getTreePreview?.(tree):null,photoSignature=photo?`${photo.src}|${photo.srcset}`:'';
+            label.dataset.preview=String(preview);
+            const photo=this.options.getTreePreview?.(tree),photoSignature=photo?`${photo.src}|${photo.srcset}`:'';
             if(this.focusPhotoSignature!==photoSignature){
                 this.focusPhotoSignature=photoSignature;const img=label.querySelector('img');
                 img.hidden=!photo?.src;
-                if(photo?.src){if(photo.srcset)img.srcset=photo.srcset;else img.removeAttribute('srcset');img.sizes='3.25rem';img.src=photo.src;}
+                if(photo?.src){if(photo.srcset)img.srcset=photo.srcset;else img.removeAttribute('srcset');img.sizes='2.375rem';img.src=photo.src;}
                 else {img.removeAttribute('src');img.removeAttribute('srcset');}
             }
             if(label.dataset.treeId!==String(tree.id)){label.querySelector('.focus-label-name').textContent=tree.name;label.title=tree.name;label.dataset.treeId=tree.id;}
             const stats=this.options.getTreeStats?.(tree,this.stopOrder.get(tree.id)||0)||[],signature=JSON.stringify(stats);
             if(this.focusStatsSignature!==signature||this.focusStatsTree!==tree.id){
                 this.focusStatsSignature=signature;this.focusStatsTree=tree.id;
-                const row=label.querySelector('.marker-stats'),fragment=document.createDocumentFragment();
-                for(const stat of stats){
-                    const item=document.createElement('span');item.className='marker-stat';item.title=stat.description;
-                    const icon=document.createElement('i');icon.className=`lucide-icon lucide-${stat.icon}`;icon.setAttribute('aria-hidden','true');item.append(icon);
-                    for(const [kind,value]of [['full',stat.full],['compact',stat.compact]]){const text=document.createElement('span');text.className=`metric-${kind}`;text.textContent=value;item.append(text);}
-                    fragment.append(item);
-                }
-                row.replaceChildren(fragment);row.hidden=!stats.length;
                 label.setAttribute('aria-label',`View tree: ${tree.name}${stats.length?'. '+stats.map(s=>s.description).join('. '):''}`);
             }
             const canvas=this.map.getContainer(),rem=parseFloat(getComputedStyle(canvas).fontSize)||16,v=window.visualViewport;
@@ -289,7 +281,7 @@
             const scene=this.projectedAnnotations(),radius=this.markerRadius||Layout.markerRadius(this.map.getZoom(),canvas.clientWidth);
             obstacles.push(...scene.markers.filter(p=>p.id!==tree.id&&(this.displayMarkerIds?.has(p.id)||this.displayExploreIds?.has(p.id))).map(p=>Layout.markerBox(p,radius+3)),...(this.clusterFeatures||[]).map(f=>Layout.markerBox(this.map.project(f.coordinates),f.radius+4)));
             if(!ignoreCallouts)obstacles.push(...(this.data.get('uow-stop-labels')?.data.features||[]).map(f=>Layout.markerBox(this.map.project(f.geometry.coordinates),radius+4)));
-            // The two-line focus label needs more clearance than a native name.
+            // The focus card needs more clearance than a native name.
             // Bound the search by its measured height and the available viewport.
             const gap=Math.max(18,rem),reach=Math.min(viewport.right-viewport.left,viewport.bottom-viewport.top,size.height*3);
             const position=placeFocusLabel(anchor,size,viewport,obstacles,gap,scene.segments,reach);
