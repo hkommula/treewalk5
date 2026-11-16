@@ -18,9 +18,11 @@ try{
     await c.call('Page.navigate',{url:'http://127.0.0.1:8765/'});
     await c.waitFor('typeof walkingReady!=="undefined"&&walkingReady&&mapView.ready&&map.getLayer("uow-tree-points")',30000);
     await c.evaluate('mapView.setBasemap("dark")');
-    await c.waitFor('mapView.ready&&map.getStyle()?.sources?.openmaptiles',30000);
-    await c.evaluate('locationTracker.stop();pauseWalking();mapView.set3D(false,false);map.setStyle({version:8,glyphs:MidnightTheme.GLYPHS,sources:{},layers:[{id:"background",type:"background",paint:{"background-color":"#001641"}}]});void 0;');
-    await c.waitFor('mapView.ready&&map.getLayer("uow-route-network-line")');
+    // The initial map load can still queue its restored basemap. Let that
+    // lifecycle finish before installing the isolated pixel-test scene.
+    await c.waitFor('mapView.ready&&mapView.basemap==="dark"&&map.loaded()',30000);
+    await c.evaluate('locationTracker.stop();pauseWalking();mapView.set3D(false,false);mapView.ready=false;map.setStyle({version:8,glyphs:MidnightTheme.GLYPHS,sources:{},layers:[{id:"background",type:"background",paint:{"background-color":"#001641"}}]},{diff:false});void 0;');
+    await c.waitFor('mapView.ready&&!map.getSource("openmaptiles")&&map.getLayer("uow-route-network-line")');
     await c.evaluate(`new Promise(r=>setTimeout(r,500))`);
     await c.evaluate(`(()=>{
         uiPanel.style.visibility='hidden';document.querySelector('.map-controls').style.visibility='hidden';

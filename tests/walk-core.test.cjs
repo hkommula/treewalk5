@@ -38,3 +38,8 @@ test('a saved route preview stays a preview until the user starts walking',()=>{
     const restored=core.restore({version:1,mode:'quick',route:['tree-1'],visited:[],status:'preview'},trees);
     assert.equal(restored.status,'preview');
 });
+test('exiting a walk restores exploration without a route or target and preserves visited trees',()=>{
+    const restored=core.restore({version:1,mode:'full',status:'exploring',route:['tree-1'],target:'tree-1',visited:['tree-2'],skipped:['tree-3']},trees);
+    assert.equal(restored.status,'exploring');assert.deepEqual(restored.route,[]);assert.equal(restored.target,null);
+    assert.deepEqual(restored.visited,[2]);assert.deepEqual(restored.skipped,[]);
+});

@@ -1,0 +1,42 @@
+[
+  {
+    "width": 320,
+    "font": 100,
+    "view": "home",
+    "key": "#close-browser",
+    "old": 14,
+    "now": 11.375,
+    "ratio": 0.8125,
+    "text": "Walk"
+  },
+  {
+    "width": 320,
+    "font": 100,
+    "view": "home",
+    "key": "#close-browser>span:nth-of-type(1)",
+    "old": 14,
+    "now": 11.375,
+    "ratio": 0.8125,
+    "text": "Walk"
+  },
+  {
+    "width": 320,
+    "font": 100,
+    "view": "home",
+    "key": "#browser-trees-tab",
+    "old": 14,
+    "now": 11.375,
+    "ratio": 0.8125,
+    "text": "Trees49"
+  },
+  {
+    "width": 320,
+    "font": 100,
+    "view": "home",
+    "key": "#browser-trees-tab>span:nth-of-type(1)",
+    "old": 14,
+    "now": 11.375,
+    "ratio": 0.8125,
+    "text": "Trees"
+  }
+]

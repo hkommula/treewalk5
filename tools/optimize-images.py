@@ -35,10 +35,11 @@ with (ROOT / 'src' / 'trees.csv').open(encoding='utf-8-sig', newline='') as sour
                     variant.save(target, 'WEBP', quality=78, method=6)
                 variants[str(size)] = target.relative_to(ROOT).as_posix()
             # The supplied posters share a left-hand photographic panel.
-            # Crop only list/supporting thumbnails; never alter the full poster.
+            # The detail gallery reuses this real photograph; the full poster
+            # remains a separate, uncropped gallery item.
             width, height = image.size
             photo = image.crop((round(width*.035), round(height*.23), round(width*.49), round(height*.94)))
-            for size in (160, 320):
+            for size in (160, 320, 640):
                 target = OUTPUT / f'{original.stem}-photo-{size}.webp'
                 if not target.exists() or target.stat().st_mtime < original.stat().st_mtime:
                     ImageOps.fit(photo, (size, size), Image.Resampling.LANCZOS).save(target, 'WEBP', quality=80, method=6)

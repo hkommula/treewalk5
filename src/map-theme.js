@@ -8,13 +8,15 @@
     const GLYPHS=typeof document==='undefined'?'src/fonts/{fontstack}/{range}.pbf':new URL('./fonts/',document.currentScript?.src||location.href).href+'{fontstack}/{range}.pbf';
     const VECTOR_SOURCE={type:'vector',url:'https://tiles.openfreemap.org/planet',attribution:'<a href="https://openfreemap.org/">OpenFreeMap</a> · <a href="https://openmaptiles.org/">OpenMapTiles</a> · © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'};
     const PALETTES={
-        dark:{background:BRAND.navy,land:'#09254b',park:'#123b43',water:'#0a2b42',road:'#2d4a73',path:'#365577',building:'#233e65',building3d:'#294b75',label:'#99afc9',text:'#f4f7fc',halo:'#001641'},
-        light:{background:'#f3f5f8',land:'#e8eef2',park:'#d7e7df',water:'#c4dce8',road:'#c9d5df',path:'#acbdc9',building:'#d4dee8',building3d:'#a7bdd0',label:'#526982',text:BRAND.navy,halo:'#f3f5f8'}
+        dark:{background:BRAND.navy,land:'#09254b',park:'#123b43',water:'#0a2b42',road:'#2d4a73',path:'#365577',building:'#34495d',building3d:'#8394a4',label:'#99afc9',text:'#f4f7fc',halo:'#001641'},
+        light:{background:'#f3f5f8',land:'#e8eef2',park:'#d7e7df',water:'#c4dce8',road:'#c9d5df',path:'#acbdc9',building:'#d9e0e6',building3d:'#a2adb7',label:'#526982',text:BRAND.navy,halo:'#f3f5f8'}
     };
+    const SCENE_LIGHT={anchor:'viewport',color:'#edf2f7',intensity:.32,position:[1.15,210,45]};
     function restyle(base,mode='dark'){
         const style=structuredClone(base),p=PALETTES[mode==='light'?'light':'dark'];
         style.name=mode==='light'?'UOW Daylight Explorer':'UOW Midnight Explorer';
         style.glyphs=GLYPHS;
+        style.light=SCENE_LIGHT;
         style.layers=style.layers.filter(layer=>{
             const source=layer['source-layer']||'',id=layer.id;
             if(source==='building'||layer.type==='fill-extrusion')return false;
@@ -37,7 +39,7 @@
                 if(path)layer.paint['line-dasharray']=[1,3];
             }else if(layer.type==='symbol'){
                 layer.minzoom=Math.max(16,layer.minzoom||0);
-                layer.layout={...layer.layout,'text-font':['Montserrat Medium'],'text-size':11,'text-padding':16};
+                layer.layout={...layer.layout,'text-font':['Montserrat Medium'],'text-size':9.625,'text-padding':16};
                 delete layer.layout['icon-image'];
                 layer.paint={'text-color':p.label,'text-halo-color':p.halo,'text-halo-width':1};
             }
@@ -46,15 +48,15 @@
         if(!style.layers.some(l=>l.type==='background'))style.layers.unshift({id:'uow-background',type:'background',paint:{'background-color':p.background}});
         return style;
     }
-    function buildingLayers(source='openmaptiles',mode='dark'){
+    function buildingLayers(source='uow-buildings',mode='dark'){
         const p=PALETTES[mode==='light'?'light':'dark'];
         return [
-            {id:'uow-buildings-fill',type:'fill',source,'source-layer':'building',minzoom:13,paint:{'fill-color':p.building,'fill-opacity':.85}},
-            {id:'uow-buildings-3d',type:'fill-extrusion',source,'source-layer':'building',minzoom:14,
+            {id:'uow-buildings-fill',type:'fill',source,minzoom:13,paint:{'fill-color':p.building,'fill-opacity':.8}},
+            {id:'uow-buildings-3d',type:'fill-extrusion',source,minzoom:14,
                 filter:['all',['!=',['get','hide_3d'],true],['!=',['get','hide_3d'],1]],
                 paint:{'fill-extrusion-color':p.building3d,'fill-extrusion-height':['min',100,['max',3,['to-number',['get','render_height'],6]]],
-                    'fill-extrusion-base':['max',0,['to-number',['get','render_min_height'],0]],'fill-extrusion-opacity':1,'fill-extrusion-vertical-gradient':true}}
+                    'fill-extrusion-base':['max',0,['to-number',['get','render_min_height'],0]],'fill-extrusion-opacity':.95,'fill-extrusion-vertical-gradient':true}}
         ];
     }
-    return {BRAND,PALETTES,VECTOR_SOURCE,GLYPHS,restyle,buildingLayers};
+    return {BRAND,PALETTES,VECTOR_SOURCE,GLYPHS,SCENE_LIGHT,restyle,buildingLayers};
 });

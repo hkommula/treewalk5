@@ -1,0 +1,61 @@
+/* Progressive Map Tools: real state, original controls, disclosure and layout. */
+import assert from 'node:assert/strict';
+import {writeFile} from 'node:fs/promises';
+import {connectBrowser} from './cdp-client.mjs';
+const c=await connectBrowser(),settle=()=>c.evaluate('new Promise(r=>setTimeout(r,750))');
+const snapshot=()=>c.evaluate('({route:currentRoute.map(t=>t.key),mode:walk.mode,target:walk.target,visited:[...visitedStops],skipped:[...walk.skipped],elapsed:walk.elapsed,tick:walk.tick,status:walk.status})');
+const capture=async name=>writeFile(`.qa/progressive-tools-${name}.png`,Buffer.from((await c.call('Page.captureScreenshot',{format:'png'})).data,'base64'));
+try{
+    const init=await c.call('Page.addScriptToEvaluateOnNewDocument',{source:'localStorage.clear()'});
+    await c.call('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+    await c.call('Page.navigate',{url:'http://127.0.0.1:8765/?progressive-tools'});
+    await c.waitFor('typeof walkingReady!=="undefined"&&walkingReady&&mapView.ready',30000);
+    await c.call('Page.removeScriptToEvaluateOnNewDocument',{identifier:init.identifier});
+    const initial=await snapshot();
+    await c.evaluate('document.getElementById("map-tools-toggle").click()');await settle();
+    assert.equal(await c.evaluate('document.getElementById("tools-advanced").open'),false);
+    assert.equal(await c.evaluate('document.querySelector("#tools-walk-summary [data-summary-action]").textContent.trim()'),'Start walk');
+    assert.equal(await c.evaluate('document.querySelector(".tools-progress-ring").getAttribute("aria-valuenow")'),'0');
+    assert.equal(await c.evaluate('document.querySelector(".tools-progress-count strong").textContent'),`0 / ${initial.route.length}`);
+    assert.deepEqual(await c.evaluate('[...document.querySelectorAll(".tools-progress-estimate>span")].slice(0,3).map(e=>e.textContent)'),await c.evaluate('[document.getElementById("stat-dist").textContent,"·",document.getElementById("stat-time").textContent]'));
+    assert.deepEqual(await snapshot(),initial,'opening tools does not start, pause or reset the walk');
+    for(const [width,height,font]of [[320,640,100],[375,812,100],[390,844,100],[430,932,100],[640,360,100],[768,1024,100],[1440,960,100],[320,640,200],[390,844,200],[1440,960,200]]){
+        await c.call('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<900});
+        await c.evaluate(`document.documentElement.style.fontSize='${font}%';closeUtility();document.getElementById('tools-advanced').open=false;document.getElementById('map-tools-toggle').click()`);await settle();
+        const layout=await c.evaluate(`(()=>{const p=document.getElementById('map-tools'),r=p.getBoundingClientRect(),buttons=[...p.querySelectorAll('.summary-actions button')].map(b=>b.getBoundingClientRect());return {overflow:p.scrollWidth>p.clientWidth||document.documentElement.scrollWidth>document.documentElement.clientWidth,bounds:r.left>=0&&r.right<=visualViewport.width+1&&r.top>=0&&r.bottom<=visualViewport.height+1,primaryFull:buttons[0].width>buttons[1].width*1.8,stacked:buttons[0].bottom<=buttons[1].top&&Math.abs(buttons[1].top-buttons[2].top)<1,touch:buttons.every(b=>b.width>=44&&b.height>=44),singleLine:[...p.querySelectorAll('.quick-map-controls .segmented-control,.quick-map-controls .dimension-control')].every(g=>{const items=[...g.querySelectorAll('label,button')].map(e=>e.getBoundingClientRect());return items.every(v=>Math.abs(v.top-items[0].top)<1)})}})()`);
+        assert.ok(!layout.overflow&&layout.bounds&&layout.primaryFull&&layout.stacked&&layout.touch&&layout.singleLine,`${width}@${font}: ${JSON.stringify(layout)}`);
+        if(width===1440&&font===100)assert.ok(await c.evaluate('document.getElementById("map-tools").offsetHeight<visualViewport.height*.7'),'desktop is content-sized');
+        if(font===100&&[390,1440].includes(width))await capture(width===390?'mobile':'desktop');
+        await c.evaluate('document.querySelector("#tools-advanced>summary").focus()');
+        await c.call('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',text:'\r',unmodifiedText:'\r',windowsVirtualKeyCode:13});await c.call('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});await settle();
+        assert.equal(await c.evaluate('document.getElementById("tools-advanced").open'),true);
+        assert.ok(await c.evaluate('document.getElementById("arrival-threshold").getClientRects().length>0'));
+        assert.equal(await c.evaluate('document.getElementById("map-tools").scrollWidth>document.getElementById("map-tools").clientWidth'),false);
+        assert.equal(await c.evaluate('document.querySelectorAll("#arrival-threshold,#auto-centre-selection,#mode-2d,#mode-3d,#layer-route,#layer-buildings").length'),6,'controls retain unique original IDs');
+        assert.deepEqual(await snapshot(),initial,'disclosure and resizing retain walk state');
+        console.log(`${width}x${height}@${font}%: progressive layout, touch, keyboard disclosure and unchanged walk passed.`);
+    }
+    await c.evaluate('document.documentElement.style.fontSize=""');
+    await c.call('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+    await c.evaluate('document.getElementById("arrival-threshold").value=40;document.getElementById("arrival-threshold").dispatchEvent(new Event("change"));document.getElementById("auto-centre-selection").click()');
+    assert.equal(await c.evaluate('walkingPreferences.arrivalThreshold'),40);assert.equal(await c.evaluate('walkingPreferences.autoCentreSelection'),false);
+    await c.evaluate('document.querySelector("#layer-route input[value=off]").click();document.querySelector("#layer-buildings input[value=off]").click();document.getElementById("mode-3d").click()');await settle();
+    assert.equal(await c.evaluate('mapView.settings.route'),false);assert.equal(await c.evaluate('mapView.settings.buildings'),false);
+    assert.equal(await c.evaluate('document.getElementById("buildings-setting").hidden'),true);
+    assert.equal(await c.evaluate('map.getLayoutProperty("uow-buildings-3d","visibility")'),'visible');
+    await c.evaluate('document.getElementById("mode-2d").click()');assert.equal(await c.evaluate('mapView.settings.buildings'),false);
+    await c.evaluate('document.querySelector("#tools-walk-summary [data-summary-action]").click()');assert.equal(await c.evaluate('walk.status'),'active');
+    await c.evaluate('document.getElementById("map-tools-toggle").click()');await settle();
+    assert.equal(await c.evaluate('document.querySelector("#tools-walk-summary [data-summary-action]").textContent.trim()'),'Pause');
+    await c.evaluate('window.focusedPrimary=document.querySelector("#tools-walk-summary [data-summary-action]");focusedPrimary.focus();toggleVisited(walk.target)');
+    assert.equal(await c.evaluate('document.activeElement===focusedPrimary'),true,'live progress keeps action focus');
+    assert.equal(await c.evaluate('Number(document.querySelector(".tools-progress-ring").getAttribute("aria-valuenow"))'),await c.evaluate('TreeWalkCore.progress(currentRoute,visitedStops,walk.skipped).percent'));
+    await c.evaluate('focusedPrimary.click();document.getElementById("map-tools-toggle").click()');assert.equal(await c.evaluate('walk.status'),'paused');
+    assert.equal(await c.evaluate('document.querySelector("#tools-walk-summary [data-summary-action]").textContent.trim()'),'Resume');
+    const beforeDone=await snapshot();await c.evaluate('document.querySelector("#tools-walk-summary .summary-actions>button:last-child").click()');assert.deepEqual(await snapshot(),beforeDone,'Done preserves session');
+    await c.call('Page.reload',{ignoreCache:true});await c.waitFor('typeof walkingReady!=="undefined"&&walkingReady&&mapView.ready');
+    assert.equal(await c.evaluate('walkingPreferences.arrivalThreshold'),40);assert.equal(await c.evaluate('mapView.settings.route'),false);assert.equal(await c.evaluate('visitedStops.size'),1);
+    await c.evaluate('document.getElementById("map-tools-toggle").click();document.querySelector("#tools-walk-summary .new-walk-action").click()');
+    assert.equal(await c.evaluate('visitedStops.size'),0);assert.equal(await c.evaluate('walk.status'),'preview');
+    assert.deepEqual(c.errors,[]);console.log('Original Start/Pause/Resume/New/Done handlers, live progress focus, settings and saved progress passed.');
+}finally{c.close();}

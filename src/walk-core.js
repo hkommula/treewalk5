@@ -20,9 +20,9 @@
     function progress(route,visited,skipped){const done=route.filter(t=>visited.has(t.id)).length;return {done,total:route.length,skipped:route.filter(t=>skipped.has(t.id)&&!visited.has(t.id)).length,percent:route.length?Math.round(done/route.length*100):0};}
     function restore(raw,trees){
         if(!raw||raw.version!==1||!Array.isArray(raw.route)||!Array.isArray(raw.visited))return null;
-        const byKey=new Map(trees.map(t=>[t.key,t.id]));
+        const byKey=new Map(trees.map(t=>[t.key,t.id])),exploring=raw.status==='exploring';
         const ids=values=>[...new Set((Array.isArray(values)?values:[]).filter(k=>typeof k==='string'&&byKey.has(k)).map(k=>byKey.get(k)))];
-        return {mode:MODES[raw.mode]?raw.mode:'full',route:ids(raw.route),visited:ids(raw.visited),skipped:ids(raw.skipped),target:byKey.get(raw.target)||null,startId:byKey.get(raw.start)||trees[0]?.id,positionId:byKey.get(raw.position)||byKey.get(raw.start)||trees[0]?.id,status:['preview','active','paused','saved','complete'].includes(raw.status)?(raw.status==='active'?'paused':raw.status):'saved',elapsed:Math.min(604800000,Math.max(0,Number(raw.elapsed)||0)),distance:Math.min(1000000,Math.max(0,Number(raw.distance)||0)),estimatedDistance:Math.min(1000000,Math.max(0,Number(raw.estimatedDistance)||0))};
+        return {mode:MODES[raw.mode]?raw.mode:'full',route:exploring?[]:ids(raw.route),visited:ids(raw.visited),skipped:exploring?[]:ids(raw.skipped),target:exploring?null:byKey.get(raw.target)||null,startId:byKey.get(raw.start)||trees[0]?.id,positionId:byKey.get(raw.position)||byKey.get(raw.start)||trees[0]?.id,status:['preview','active','paused','saved','complete','exploring'].includes(raw.status)?(raw.status==='active'?'paused':raw.status):'saved',elapsed:Math.min(604800000,Math.max(0,Number(raw.elapsed)||0)),distance:Math.min(1000000,Math.max(0,Number(raw.distance)||0)),estimatedDistance:Math.min(1000000,Math.max(0,Number(raw.estimatedDistance)||0))};
     }
     function nearArrival(readings,location,target,threshold){
         if(!target||!Number.isFinite(location.accuracy)||location.accuracy>Math.min(threshold,35)||!Number.isFinite(location.timestamp)||Date.now()-location.timestamp>15000)return [];

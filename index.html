@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>UOW Campus Tree Walk</title>
-    <link rel="icon" href="src/logo.png">
+    <link rel="icon" href="data:,">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
@@ -53,20 +53,20 @@
         
         .header-top {display:grid;grid-template-columns:minmax(76px,auto) minmax(0,1fr) auto;gap:8px;align-items:center;margin-bottom:8px;}
         .uow-title{margin:0;line-height:1;align-self:center;}
-        .uow-title-link{color:var(--uow-red);display:inline-block;font-size:.94rem;font-weight:780;letter-spacing:0;text-decoration:none;white-space:nowrap;}
+        .uow-title-link{color:var(--uow-red);display:inline-block;font-size:.8225rem;font-weight:780;letter-spacing:0;text-decoration:none;white-space:nowrap;}
         .uow-title-link:hover{color:#ff5370;}
         
         .settings-btn{height:30px;width:30px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.035);
-            color:var(--text-muted);border-radius:8px;font-size:.86rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+            color:var(--text-muted);border-radius:8px;font-size:.7525rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
         .settings-btn:hover,.settings-btn.active{color:var(--text-main);background:rgba(255,255,255,.08);}
         .about-this-btn{height:30px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.035);
-            color:var(--text-muted);border-radius:999px;padding:0 9px;font-size:.62rem;font-weight:720;
+            color:var(--text-muted);border-radius:999px;padding:0 9px;font-size:.5425rem;font-weight:720;
             text-transform:uppercase;letter-spacing:.03em;cursor:pointer;white-space:nowrap;}
         .about-this-btn:hover{color:var(--text-main);background:rgba(255,255,255,.07);}
 
-        .header-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;font-size:0.68rem;color:var(--text-muted);font-weight:650;}
+        .header-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;font-size:0.595rem;color:var(--text-muted);font-weight:650;}
         .stat-item{min-height:32px;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(255,255,255,0.028);padding:5px 6px;border:1px solid rgba(255,255,255,.05);border-radius:8px;}
-        .stat-item i{color:var(--uow-red);font-size:0.75rem;flex:0 0 auto;opacity:.9;}
+        .stat-item i{color:var(--uow-red);font-size:0.65625rem;flex:0 0 auto;opacity:.9;}
         .stat-item span:last-child{min-width:0;text-align:center;line-height:1.2;overflow-wrap:anywhere;}
         
         .progress-track{position:absolute; bottom:0; left:0; width:100%; height:3px; background:rgba(255,255,255,0.05);}
@@ -78,9 +78,9 @@
             padding:9px 12px 10px;gap:7px;grid-template-columns:1fr;}
         .custom-panel.show{display:grid;}
         .custom-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:30px;
-            color:rgba(232,237,243,.82);font-size:.72rem;font-weight:650;}
+            color:rgba(232,237,243,.82);font-size:.63rem;font-weight:650;}
         .custom-row span{display:inline-flex;align-items:center;gap:7px;min-width:0;}
-        .custom-row i{color:var(--uow-red);font-size:.78rem;}
+        .custom-row i{color:var(--uow-red);font-size:.6825rem;}
         .custom-row input{width:34px;height:18px;appearance:none;border-radius:999px;background:rgba(255,255,255,.14);
             border:1px solid rgba(255,255,255,.08);position:relative;cursor:pointer;flex:0 0 auto;}
         .custom-row input::before{content:"";position:absolute;width:14px;height:14px;left:1px;top:1px;border-radius:50%;
@@ -88,7 +88,7 @@
         .custom-row input:checked{background:rgba(0,94,184,.78);border-color:rgba(255,255,255,.16);}
         .custom-row input:checked::before{transform:translateX(16px);background:#fff;}
         .custom-action{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:rgba(232,237,243,.78);
-            border-radius:999px;padding:4px 9px;font-size:.64rem;font-weight:620;cursor:pointer;}
+            border-radius:999px;padding:4px 9px;font-size:.56rem;font-weight:620;cursor:pointer;}
         .custom-action:hover{background:rgba(255,255,255,.08);color:#fff;}
 
         /* ── Scrollable Body ── */
@@ -97,7 +97,7 @@
         .panel-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
 
         /* ── Tree Cards ── */
-        .stops-label{font-size:.7rem;font-weight:620;text-transform:uppercase;
+        .stops-label{font-size:.6125rem;font-weight:620;text-transform:uppercase;
             letter-spacing:.8px;color:var(--text-dim);padding:0.5vh 1vw 1vh;}
         .about-modal{display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.58);
             backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:18px;}
@@ -107,14 +107,14 @@
             box-shadow:0 24px 64px rgba(0,0,0,.55);overflow:hidden;}
         .about-modal-head{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:12px 14px;
             border-bottom:1px solid rgba(255,255,255,.07);}
-        .about-modal-title{font-size:.82rem;font-weight:700;color:rgba(232,237,243,.92);text-transform:uppercase;letter-spacing:.04em;}
+        .about-modal-title{font-size:.7175rem;font-weight:700;color:rgba(232,237,243,.92);text-transform:uppercase;letter-spacing:.04em;}
         .welcome-logo{width:82px;height:34px;object-fit:contain;}
         .about-modal-close{width:30px;height:30px;border:1px solid rgba(255,255,255,.08);border-radius:8px;
             background:rgba(255,255,255,.04);color:rgba(232,237,243,.78);cursor:pointer;}
         .about-modal-close:hover{background:rgba(255,255,255,.08);color:#fff;}
-        .about-modal-body{padding:14px;overflow:auto;color:rgba(232,237,243,.78);font-size:.78rem;line-height:1.45;}
-        .about-modal-body h1,.about-modal-body h2,.about-modal-body h3{font-size:1rem;line-height:1.2;margin:0 0 8px;color:rgba(232,237,243,.94);font-weight:700;}
-        .about-modal-body h4,.about-modal-body h5,.about-modal-body h6{font-size:.84rem;margin:10px 0 5px;color:rgba(232,237,243,.86);font-weight:650;}
+        .about-modal-body{padding:14px;overflow:auto;color:rgba(232,237,243,.78);font-size:.6825rem;line-height:1.45;}
+        .about-modal-body h1,.about-modal-body h2,.about-modal-body h3{font-size:.875rem;line-height:1.2;margin:0 0 8px;color:rgba(232,237,243,.94);font-weight:700;}
+        .about-modal-body h4,.about-modal-body h5,.about-modal-body h6{font-size:.735rem;margin:10px 0 5px;color:rgba(232,237,243,.86);font-weight:650;}
         .about-modal-body p{margin:0 0 8px;}
         .about-modal-body ul{margin:4px 0 10px;padding-left:18px;}
         .about-modal-body li{margin:3px 0;}
@@ -129,55 +129,55 @@
         
         .tree-card-header{display:flex;align-items:center;justify-content:space-between;width:100%}
         .card-content{flex:1;min-width:0}
-        .card-name{font-size:.9rem;font-weight:620;color:var(--text-main);
+        .card-name{font-size:.7875rem;font-weight:620;color:var(--text-main);
             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
-        .card-sci{font-size:.75rem;color:var(--text-muted);font-style:italic;
+        .card-sci{font-size:.65625rem;color:var(--text-muted);font-style:italic;
             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:2px}
-        .card-check{color:var(--accent-green);font-size:1.1rem;flex-shrink:0}
+        .card-check{color:var(--accent-green);font-size:.9625rem;flex-shrink:0}
 
         /* ── Standalone Detail View ── */
         #tree-detail-view { display: none; flex-direction: column; height: 100%; }
         .detail-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
         .back-btn {
-            background:rgba(59,130,246,.08); color: var(--accent-blue); border:1px solid rgba(59,130,246,.16); font-size: 0.68rem; font-weight: 650;
+            background:rgba(59,130,246,.08); color: var(--accent-blue); border:1px solid rgba(59,130,246,.16); font-size: 0.595rem; font-weight: 650;
             cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding:5px 8px;border-radius:999px;
             flex:0 0 auto;
         }
         .back-btn:hover { color: #93c5fd;background:rgba(59,130,246,.12); }
-        .detail-mini-coords{min-width:0;text-align:right;font-size:.66rem;color:var(--text-muted);
+        .detail-mini-coords{min-width:0;text-align:right;font-size:.5775rem;color:var(--text-muted);
             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .detail-mini-dist{font-size:.6rem;color:#2dd4bf;font-weight:700;}
-        .detail-mini-help{font-size:.58rem;color:rgba(125,138,150,.72);font-weight:620;}
+        .detail-mini-dist{font-size:.525rem;color:#2dd4bf;font-weight:700;}
+        .detail-mini-help{font-size:.5075rem;color:rgba(125,138,150,.72);font-weight:620;}
         
         .detail-card{background:transparent;border:0;border-radius:0;padding:4px 0 0;}
         .detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;border-bottom:1px solid var(--border-subtle);padding-bottom:10px;margin-bottom:10px;}
         .detail-head > div:first-child{min-width:0;}
-        .detail-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); line-height: 1.15; margin:0; overflow-wrap:anywhere; }
-        .detail-sci { font-size: 0.78rem; color: var(--text-muted); font-style: italic; margin-top: 3px; line-height:1.2; }
-        .detail-badge{flex:0 0 auto;color:var(--accent-green);background:rgba(46,160,67,.1);border:1px solid rgba(46,160,67,.26);border-radius:999px;padding:3px 6px;font-size:.62rem;font-weight:650;text-transform:uppercase;}
+        .detail-title { font-size: .91875rem; font-weight: 700; color: var(--text-main); line-height: 1.15; margin:0; overflow-wrap:anywhere; }
+        .detail-sci { font-size: 0.6825rem; color: var(--text-muted); font-style: italic; margin-top: 3px; line-height:1.2; }
+        .detail-badge{flex:0 0 auto;color:var(--accent-green);background:rgba(46,160,67,.1);border:1px solid rgba(46,160,67,.26);border-radius:999px;padding:3px 6px;font-size:.5425rem;font-weight:650;text-transform:uppercase;}
 
         .popup-body{padding:0}
-        .popup-fam{font-size:.8rem;color:var(--text-main);margin-bottom:8px}
+        .popup-fam{font-size:.7rem;color:var(--text-main);margin-bottom:8px}
         .popup-fam span{color:var(--text-muted)}
-        .feature-info{font-size:.76rem;line-height:1.35;color:var(--text-muted);background:rgba(255,255,255,.02);
+        .feature-info{font-size:.665rem;line-height:1.35;color:var(--text-muted);background:rgba(255,255,255,.02);
             border:1px solid rgba(255,255,255,.045);border-radius:6px;padding:8px 10px;margin-bottom:10px;}
-        .feature-info .about-title{display:block;color:rgba(232,237,243,.86);font-size:.68rem;font-weight:650;text-transform:uppercase;margin-bottom:6px;}
+        .feature-info .about-title{display:block;color:rgba(232,237,243,.86);font-size:.595rem;font-weight:650;text-transform:uppercase;margin-bottom:6px;}
         .about-row{display:grid;grid-template-columns:58px minmax(0,1fr);gap:7px;align-items:start;}
         .about-row + .about-row{margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.035);}
-        .about-key{color:rgba(125,138,150,.58);font-weight:650;text-transform:uppercase;font-size:.62rem;white-space:nowrap;}
+        .about-key{color:rgba(125,138,150,.58);font-weight:650;text-transform:uppercase;font-size:.5425rem;white-space:nowrap;}
         .about-value{min-width:0;overflow-wrap:anywhere;color:rgba(232,237,243,.74);}
         .popup-btns{display:flex;gap:8px; margin-bottom:0;}
-        .popup-btns .pb{flex:1; font-size:.76rem; padding:9px 10px; border-radius:6px;
+        .popup-btns .pb{flex:1; font-size:.665rem; padding:9px 10px; border-radius:6px;
             font-weight:600; cursor:pointer; border:none; text-align:center;
             text-decoration:none; display:block; white-space:nowrap;min-width:0;}
         .pb-visit{background:var(--accent-green);color:#fff}
         .pb-unvisit{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)!important;color:var(--text-muted)}
         .more-info{margin-bottom:10px;}
-        .more-info-title{display:block;color:rgba(232,237,243,.78);font-size:.68rem;font-weight:650;text-transform:uppercase;margin-bottom:6px;}
+        .more-info-title{display:block;color:rgba(232,237,243,.78);font-size:.595rem;font-weight:650;text-transform:uppercase;margin-bottom:6px;}
         .more-info-links{display:flex;flex-wrap:wrap;gap:5px;}
         .more-info-link{display:inline-flex;align-items:center;gap:4px;width:max-content;max-width:100%;padding:5px 7px;border-radius:999px;
             border:1px solid rgba(255,255,255,.08);color:rgba(232,237,243,.76);background:rgba(255,255,255,.025);
-            text-decoration:none;font-size:.64rem;font-weight:620;line-height:1;white-space:nowrap;}
+            text-decoration:none;font-size:.56rem;font-weight:620;line-height:1;white-space:nowrap;}
         .more-info-link:hover{color:#fff;background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);}
 
         /* ── Image Viewer inside Detail ── */
@@ -197,7 +197,7 @@
         .icon-btn{background:var(--panel-bg);color:var(--text-main);
             border:1px solid var(--border-soft);border-radius:8px;
             width:clamp(38px, 3.5vw, 46px);height:clamp(38px, 3.5vw, 46px);cursor:pointer;display:flex;align-items:center;
-            justify-content:center;font-size:1.08rem;
+            justify-content:center;font-size:.945rem;
             backdrop-filter:blur(18px);box-shadow:0 4px 14px rgba(0,0,0,.45);
             transition:background .15s}
         .icon-btn:hover{background:rgba(255,255,255,.12)}
@@ -215,11 +215,11 @@
             border-radius:12px;padding:11px;box-shadow:0 14px 34px rgba(0,0,0,.55);backdrop-filter:blur(18px);
             opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .18s,transform .18s;}
         .gps-prompt.show{opacity:1;transform:translateY(0);pointer-events:auto;}
-        .gps-prompt-title{font-size:.76rem;font-weight:700;color:var(--text-main);margin-bottom:3px;}
-        .gps-prompt-text{font-size:.68rem;line-height:1.35;color:var(--text-muted);margin-bottom:9px;}
+        .gps-prompt-title{font-size:.665rem;font-weight:700;color:var(--text-main);margin-bottom:3px;}
+        .gps-prompt-text{font-size:.595rem;line-height:1.35;color:var(--text-muted);margin-bottom:9px;}
         .gps-prompt-actions{display:flex;gap:6px;justify-content:flex-end;}
         .gps-prompt-btn{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--text-muted);
-            border-radius:999px;padding:6px 9px;font-size:.66rem;font-weight:650;cursor:pointer;}
+            border-radius:999px;padding:6px 9px;font-size:.5775rem;font-weight:650;cursor:pointer;}
         .gps-prompt-btn.primary{background:var(--uow-red);border-color:transparent;color:#fff;}
 
         /* ── Lightbox ── */
@@ -228,7 +228,7 @@
             opacity:0;transition:opacity .25s;backdrop-filter:blur(12px)}
         #lightbox.show{display:flex;opacity:1}
         #lightbox img{max-width:90vw;max-height:88vh;border-radius:12px;box-shadow:0 0 50px rgba(0,0,0,.9)}
-        .close-lb{position:absolute;top:2vh;right:3vw;font-size:2rem;
+        .close-lb{position:absolute;top:2vh;right:3vw;font-size:1.75rem;
             color:rgba(255,255,255,.5);cursor:pointer;transition:color .15s;line-height:1}
 
         /* ── Mobile Viewports & Draggable Sheet ── */
@@ -238,6 +238,8 @@
     <link rel="stylesheet" href="src/walk.css">
     <link rel="stylesheet" href="src/tree-card.css">
     <link rel="stylesheet" href="src/midnight.css">
+    <link rel="stylesheet" href="src/editorial.css">
+    <link rel="stylesheet" href="src/glass.css">
     <link rel="preload" href="src/fonts/Montserrat.woff" as="font" type="font/woff" crossorigin>
 </head>
 <body>
@@ -254,13 +256,10 @@
                 <a class="uow-title-link" href="https://www.uow.edu.au/about/services/environment/campus-environment/wollongong-campus-tree-walk/" target="_blank" rel="noopener noreferrer">Tree Walk</a>
             </h4>
             <span id="current-walk-badge" class="current-walk-badge" aria-label="Current walk">Quick Walk</span>
-            <button id="custom-toggle" class="settings-btn" type="button" title="Settings" aria-label="Settings">
-                <i class="bi bi-sliders"></i>
-            </button>
         </div>
         <div class="header-stats">
             <span class="stat-item" title="Progress"><i class="bi bi-check2-circle"></i> <span id="progress-text">0/0</span></span>
-            <span class="stat-item" title="Distance Left"><i class="bi bi-signpost-split"></i> <span id="stat-dist">-- km</span></span>
+            <span class="stat-item" title="Distance Left"><i class="lucide-icon lucide-footprints" aria-hidden="true"></i> <span id="stat-dist">-- km</span></span>
             <span class="stat-item" title="Estimated Time"><i class="bi bi-clock-history"></i> <span id="stat-time">-- min</span></span>
         </div>
         <section id="walk-strip" hidden aria-label="Next tree">
@@ -274,6 +273,10 @@
             <div class="nav-actions"><button id="nav-primary" class="walk-btn primary symbol-action"><i class="bi bi-eye" aria-hidden="true"></i><span>View tree</span></button><button id="skip-stop" class="text-btn symbol-action" aria-label="Skip this tree" title="Skip this tree"><i class="bi bi-skip-forward" aria-hidden="true"></i><span>Skip</span></button></div>
         </section>
         <div id="custom-panel" class="custom-panel" aria-label="Site customisations">
+            <label class="setting-row arrival-setting" for="arrival-threshold"><span class="setting-label"><i class="lucide-icon lucide-footprints" aria-hidden="true"></i> Arrival<span class="arrival-word">distance</span></span><span class="number-control"><input id="arrival-threshold" type="number" inputmode="numeric" min="15" max="60" step="5" value="30" aria-label="Arrival distance in metres"><span aria-hidden="true">m</span></span></label>
+            <label class="custom-row"><span><i class="bi bi-cursor" aria-hidden="true"></i> Auto-centre on selection</span><input id="auto-centre-selection" type="checkbox" checked></label>
+            <div id="perspective-setting" class="setting-row"><span class="setting-label sr-only"><i class="bi bi-box" aria-hidden="true"></i> Map perspective</span><div class="dimension-control" role="group" aria-label="Map perspective"><button id="mode-2d" type="button" aria-label="Switch to 2D overhead view" aria-pressed="true">2D</button><button id="mode-3d" type="button" aria-label="Switch to 3D view" aria-pressed="false">3D</button></div></div>
+            <div class="more-preferences" role="group" aria-label="Additional preferences">
             <label class="custom-row">
                 <span><i class="bi bi-phone-vibrate"></i> Haptics</span>
                 <input id="custom-haptics" type="checkbox" checked>
@@ -290,10 +293,10 @@
                 <span><i class="bi bi-signpost-split"></i> Campus paths</span>
                 <input id="custom-campus-paths" type="checkbox" checked>
             </label>
-            <label class="field">Arrival distance (metres)<input id="arrival-threshold" type="number" min="15" max="60" step="5" value="30"></label>
             <div class="custom-row">
                 <span><i class="bi bi-info-circle"></i> Welcome</span>
-                <button id="custom-welcome" class="custom-action" type="button">View</button>
+                <button id="custom-welcome" class="custom-action" type="button" aria-label="View welcome and app information">View</button>
+            </div>
             </div>
         </div>
         <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
@@ -302,25 +305,28 @@
     <div class="panel-body">
         <section id="walk-summary" hidden tabindex="-1" aria-label="Walk summary"></section>
         <section id="walk-home" aria-label="Start a campus walk">
-            <div class="home-kicker"><p class="eyebrow">Wollongong campus</p><span id="home-tools"></span></div>
-            <h1>UOW Tree Walk</h1>
+            <div class="home-kicker"><p class="eyebrow">Wollongong campus</p></div>
+            <h1><span>UOW</span> Tree Walk</h1>
             <p class="home-description">Explore the living campus.</p>
+            <div id="home-navigation-slot"></div>
             <div class="walk-overview"><p id="home-walk-type" class="selected-walk">Quick Walk</p><p class="walk-note" id="route-estimate">Preparing your walk&hellip;</p></div>
             <button class="walk-btn primary home-start symbol-action" id="start-walk" disabled><i class="bi bi-play-fill" aria-hidden="true"></i><span>Start walk</span></button>
             <p id="saved-walk-note" class="walk-note" hidden>Progress saved on this device.</p>
             <section class="walk-planner" aria-label="Plan your walk">
-                <details class="route-options" id="route-options"><summary><span class="symbol-action"><i class="bi bi-signpost-split" aria-hidden="true"></i> Change walk</span><span id="route-label" class="sr-only">15 minutes</span></summary>
+                <details class="route-options" id="route-options"><summary><span class="symbol-action"><i class="lucide-icon lucide-route" aria-hidden="true"></i> Change walk</span><i class="lucide-icon lucide-chevron-down planner-disclosure-icon" aria-hidden="true"></i><span id="route-label" class="sr-only">15 minutes</span></summary>
                 <div class="planner-row">
-                    <label class="field">Choose a walk<select id="walk-mode">
+                    <label class="field"><span class="planner-field-label"><i class="lucide-icon lucide-route" aria-hidden="true"></i>Choose a walk</span><span class="planner-select"><select id="walk-mode">
+                        <option value="" disabled>Choose a walk</option>
                         <option value="quick" selected>Quick Walk &middot; ~15 min</option>
                         <option value="casual">Casual Walk &middot; ~30 min</option>
                         <option value="full">Full Walk &middot; all trees</option>
                         <option value="nearby">Explore Nearby</option>
-                    </select></label>
-                    <label class="field">Start from<select id="walk-start"><option>Loading trees&hellip;</option></select></label>
+                    </select><i class="lucide-icon lucide-chevron-down" aria-hidden="true"></i></span></label>
+                    <label class="field"><span class="planner-field-label"><i class="lucide-icon lucide-map-pin" aria-hidden="true"></i>Start from</span><span class="planner-select"><select id="walk-start"><option>Loading trees&hellip;</option></select><i class="lucide-icon lucide-chevron-down" aria-hidden="true"></i></span></label>
                 </div>
-                <p class="walk-note">Approximate paths. Dashed links are direct. Time includes stops.</p>
+                <p class="walk-note planner-note">Approximate walking time, including stops.</p>
                 </details>
+                <button id="walk-exit" class="planner-exit" type="button" aria-label="Exit selected walk and show all trees" title="Exit walk and show all trees"><i class="lucide-icon lucide-x" aria-hidden="true"></i></button>
             </section>
             <section class="home-stop-preview" aria-label="Trees along your walk">
                 <h2>Along the walk</h2><ol id="home-stop-list"></ol>
@@ -329,9 +335,9 @@
             <button id="walk-review" class="text-btn symbol-action" hidden aria-label="View walk summary"><i class="bi bi-bar-chart" aria-hidden="true"></i><span>Summary</span></button>
         </section>
         <div id="browse-controls" hidden>
-            <div class="browse-heading"><button id="close-browser" class="back-btn symbol-action" aria-label="Back to walk" title="Back to walk"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Walk</span></button><h2>Trees</h2></div>
+            <div class="browser-topline"><div class="browser-brand"><h2><span>UOW</span> Tree Walk</h2><p>Explore the campus tree collection</p></div><nav class="browser-navigation" aria-label="Walk and trees"><button id="close-browser" class="symbol-action" aria-label="Back to walk" title="Back to walk"><i class="bi bi-signpost-split" aria-hidden="true"></i><span>Walk</span></button><button id="browser-trees-tab" class="symbol-action" aria-current="page"><i class="bi bi-tree" aria-hidden="true"></i><span>Trees</span><small id="browser-tree-total" aria-hidden="true"></small></button></nav></div>
             <div class="list-tools">
-                <label class="field"><span class="sr-only">Find a tree by common or scientific name</span><input id="tree-search" type="search" placeholder="Name or species" autocomplete="off"></label>
+                <div class="browse-search"><i class="bi bi-search" aria-hidden="true"></i><label class="field"><span class="sr-only">Find a tree by common or scientific name</span><input id="tree-search" type="search" placeholder="Search by name or species" autocomplete="off"></label><span id="browser-sort-slot"></span></div>
                 <div class="filters" role="group" aria-label="Filter trees">
                     <button class="filter-btn symbol-action" data-filter="all" aria-pressed="true"><i class="bi bi-grid" aria-hidden="true"></i><span>All</span></button>
                     <button class="filter-btn symbol-action" data-filter="nearby" aria-pressed="false"><i class="bi bi-geo-alt" aria-hidden="true"></i><span>Nearby</span></button>
@@ -340,10 +346,11 @@
                 </div>
             </div>
         </div>
-        <div id="stops-list" hidden>
+        <div class="browser-list-meta" id="browser-list-meta" hidden><output id="tree-count" class="stops-label" aria-live="polite"></output><label class="tree-sort"><span>Sort:</span><select id="tree-sort" aria-label="Sort trees"><option value="name">A–Z</option><option value="distance">Nearest</option><option value="route">Tour order</option></select></label></div>
+        <div id="stops-list" role="region" aria-label="Tree search results" tabindex="0" hidden>
             <div style="text-align:center;padding-top:2rem;color:var(--text-muted)">
                 <div style="width:24px;height:24px;border:3px solid var(--uow-red);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 1vh"></div>
-                <div style="font-size:.85rem">Loading mapping data…</div>
+                <div style="font-size:.74375rem">Loading mapping data…</div>
             </div>
         </div>
         <div id="tree-detail-view">
@@ -358,19 +365,33 @@
 
 <div id="app-status" role="status" aria-live="polite"></div>
 <div class="map-controls">
+    <button id="map-north" class="icon-btn map-compass" aria-label="Reset map to north" title="Reset map to north"><i class="bi bi-caret-up-fill" aria-hidden="true"></i><span aria-hidden="true">N</span></button>
     <button id="gps-toggle" class="icon-btn" title="Track my location">
         <span class="gps-status-light" aria-hidden="true"></span>
         <i class="bi bi-crosshair"></i>
     </button>
     <button id="map-tools-toggle" class="icon-btn" aria-label="Map tools" aria-controls="map-tools" aria-expanded="false"><i class="bi bi-layers"></i></button>
     <button id="resume-follow" class="walk-btn follow-btn symbol-action symbol-only" hidden aria-label="Resume following my location" title="Resume follow"><i class="bi bi-cursor-fill" aria-hidden="true"></i></button>
+    <div class="map-zoom-group" role="group" aria-label="Map zoom"><button id="map-zoom-in" class="icon-btn" aria-label="Zoom in"><i class="bi bi-plus-lg" aria-hidden="true"></i></button><button id="map-zoom-out" class="icon-btn" aria-label="Zoom out"><i class="bi bi-dash-lg" aria-hidden="true"></i></button></div>
 </div>
 <div id="map-tools" class="utility-popover" hidden role="dialog" aria-label="Map tools">
-    <div class="popover-heading"><strong>Map tools</strong><button class="settings-btn" data-close-popover aria-label="Close map tools"><i class="bi bi-x-lg"></i></button></div>
-    <div class="action-row"><button id="map-zoom-in" class="walk-btn symbol-action" aria-label="Zoom in" title="Zoom in"><i class="bi bi-plus-lg" aria-hidden="true"></i></button><button id="map-zoom-out" class="walk-btn symbol-action" aria-label="Zoom out" title="Zoom out"><i class="bi bi-dash-lg" aria-hidden="true"></i></button><button id="home-view" class="walk-btn symbol-action" aria-label="Fit walk on map" title="Fit walk on map"><i class="bi bi-arrows-fullscreen" aria-hidden="true"></i><span>Fit walk</span></button></div>
-    <label class="field">Basemap<select id="basemap"><option value="dark">UOW Midnight Explorer</option><option value="light">Outdoor / Daylight</option><option value="aerial">Aerial - NSW imagery</option></select></label>
-    <button id="mode-3d" class="walk-btn symbol-action" aria-label="Switch to 3D view" aria-pressed="false" title="Switch to 3D view"><i class="bi bi-box" aria-hidden="true"></i><span>Explore in 3D</span></button>
-    <p class="walk-note route-key"><span aria-hidden="true">·····</span> Walking route<br><span aria-hidden="true">– –</span> Direct connection</p>
+    <div class="popover-heading"><strong>Map tools</strong><div class="map-heading-actions"><button id="home-view" class="text-btn symbol-action" aria-label="Fit walk on map" title="Fit walk"><i class="bi bi-arrows-fullscreen" aria-hidden="true"></i><span>Fit walk</span></button><button class="settings-btn" data-close-popover aria-label="Close map tools"><i class="bi bi-x-lg"></i></button></div></div>
+    <section id="tools-walk-summary" aria-label="Your walk"></section>
+    <section class="map-layer-settings" aria-labelledby="map-layers-heading">
+        <h3 id="map-layers-heading">Quick map controls</h3>
+        <span id="basemap-label" class="sr-only">Basemap</span>
+        <div class="quick-map-controls"><div id="basemap" class="segmented-control" role="radiogroup" aria-labelledby="basemap-label">
+            <label title="UOW Midnight Explorer"><input type="radio" name="basemap" value="dark" aria-label="Dark: UOW Midnight Explorer" checked><span><i class="bi bi-moon segment-icon" aria-hidden="true"></i><span class="segment-text">Dark</span></span></label>
+            <label title="Outdoor light map"><input type="radio" name="basemap" value="light" aria-label="Light: Outdoor map"><span><i class="bi bi-sun segment-icon" aria-hidden="true"></i><span class="segment-text">Light</span></span></label>
+            <label title="Aerial imagery"><input type="radio" name="basemap" value="aerial" aria-label="Aerial imagery"><span><i class="bi bi-image segment-icon" aria-hidden="true"></i><span class="segment-text">Aerial</span></span></label>
+        </div><div id="tools-perspective-slot"></div></div>
+        <details id="tools-advanced" class="tools-advanced"><summary><i class="bi bi-sliders" aria-hidden="true"></i><span>Advanced settings</span><i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+        <div class="tools-advanced-content"><div id="tools-settings-slot"></div><div class="tools-layer-options">
+        <div id="buildings-setting" class="setting-row layer-setting"><span id="buildings-label" class="setting-label"><i class="bi bi-buildings" aria-hidden="true"></i> Buildings</span><div id="layer-buildings" class="segmented-control" role="radiogroup" aria-labelledby="buildings-label"><label><input type="radio" name="buildings" value="on" checked><span>On</span></label><label><input type="radio" name="buildings" value="off"><span>Off</span></label></div></div>
+        <div class="setting-row layer-setting"><span id="route-layer-label" class="setting-label"><i class="bi bi-bezier2" aria-hidden="true"></i> Walk route</span><div id="layer-route" class="segmented-control" role="radiogroup" aria-labelledby="route-layer-label"><label><input type="radio" name="route-layer" value="on" checked><span>On</span></label><label><input type="radio" name="route-layer" value="off"><span>Off</span></label></div></div>
+        </div></div></details>
+        <section class="map-attribution" aria-labelledby="map-attribution-title"><h4 id="map-attribution-title">Attribution</h4><div id="map-attribution-content"><p>Paths © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a></p></div></section>
+    </section>
 </div>
 <div id="walk-menu" class="utility-popover" hidden role="dialog" aria-label="Walk menu">
     <div class="popover-heading"><strong>Your walk</strong><button class="settings-btn" data-close-popover aria-label="Close walk menu"><i class="bi bi-x-lg"></i></button></div>
@@ -379,7 +400,6 @@
     <button id="show-route" class="walk-btn symbol-action"><i class="bi bi-signpost-split" aria-hidden="true"></i><span>Route</span></button>
     <button id="menu-browse" class="walk-btn symbol-action"><i class="bi bi-tree" aria-hidden="true"></i><span>Trees</span></button>
     <button id="finish-walk" class="walk-btn symbol-action"><i class="bi bi-flag" aria-hidden="true"></i><span>Finish</span></button>
-    <button id="menu-settings" class="text-btn symbol-action"><i class="bi bi-sliders" aria-hidden="true"></i><span>Settings</span></button>
     <p class="walk-note">Progress saved automatically.</p>
 </div>
 
@@ -405,7 +425,10 @@
 
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+<script src="./src/vendor/polygon-clipping.min.js"></script>
+<script src="./src/campus-scene.js"></script>
 <script src="./src/map-theme.js"></script>
+<script src="./src/map-label-layout.js"></script>
 <script src="./src/map-view.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="./src/location-tracker.js"></script>
@@ -424,20 +447,24 @@ let sheetState = 'half';
 function isSheetLayout() {
     // Reserve enough room for a readable panel and a useful map, based on the user's text size.
     const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-    return document.documentElement.clientWidth < rem * 54;
+    return document.documentElement.clientWidth < rem * 48;
 }
 function sheetHeights() {
     const h=window.visualViewport?.height||window.innerHeight;
     const rem=parseFloat(getComputedStyle(document.documentElement).fontSize);
     const safe=parseFloat(getComputedStyle(uiPanel).paddingBottom)||0;
-    const peek=Math.min(h*.85,dragHandleContainer.offsetHeight+panelHeader.offsetHeight+safe);
-    const attribution=document.querySelector('.maplibregl-ctrl-attrib');
-    const mapMinimum=rem*4.75+(attribution?.offsetHeight||rem*1.5);
-    const expanded=Math.max(peek,Math.min(h*.85,h-mapMinimum));
+    const sheetMaximum=h*.5;
+    const peek=Math.min(sheetMaximum,dragHandleContainer.offsetHeight+panelHeader.offsetHeight+safe);
+    const mapMinimum=Math.min(rem*7.5,h*.5);
+    let expanded=Math.max(peek,Math.min(sheetMaximum,h-mapMinimum));
     const home=document.getElementById('walk-home');
     const bodyStyle=getComputedStyle(document.querySelector('.panel-body'));
+    if(typeof walkView!=='undefined'&&walkView==='summary'){
+        const content=peek+document.getElementById('walk-summary').scrollHeight+parseFloat(bodyStyle.paddingTop)+parseFloat(bodyStyle.paddingBottom);
+        expanded=Math.min(expanded,Math.max(peek,content));
+    }
     const homeSize=typeof walkView!=='undefined'&&walkView==='home'?peek+home.scrollHeight+parseFloat(bodyStyle.paddingTop)+parseFloat(bodyStyle.paddingBottom):0;
-    return {peek,half:Math.min(expanded,Math.max(peek,h*.45,Math.min(h*.62,homeSize))),expanded};
+    return {peek,half:Math.min(expanded,Math.max(peek,h*.45,Math.min(sheetMaximum,homeSize))),expanded};
 }
 function getSheetPeekHeight() { return sheetHeights().peek; }
 function setSheetState(state, recenter = true) {
@@ -461,9 +488,9 @@ function requestSheetMapRefresh() {
     clearTimeout(sheetRecenterFrame);
     sheetRecenterFrame=setTimeout(()=>{
         sheetRecenterFrame=null;
-        if(walk.follow&&userLoc){walk.lastFollow=null;followLocation();}
-        else if(activeTree)flyToVisible([activeTree.lat,activeTree.lng],mapView.getZoom(),{animate:false});
-        else if(walkView==='home')fitHomeView({animate:false,maxZoom:18});
+        // Padding shifts the apparent centre without choosing a new destination
+        // or resetting a user's zoom after a sheet gesture.
+        scheduleLayout();
     },260);
 }
 function beginPanelDrag(e) {
@@ -508,17 +535,49 @@ let legacyOutdoor=false;
 try{legacyOutdoor=JSON.parse(localStorage.getItem('uowTreeWalkWalkingPreferences')||'{}').outdoor===true;}catch{}
 const mapView=new CampusMap({container:'map',center:UOW_CENTER,outdoor:legacyOutdoor,
     onNotice:message=>{if(typeof showStatus==='function')showStatus(message);else document.getElementById('app-status').textContent=message;},
-    onTreeClick:id=>{activateTree(id);flyToVisible([treeById.get(id).lat,treeById.get(id).lng],19);},
-    onMapClick:handleFeaturelessMapClick
+    onTreeClick:id=>{if(walkView==='browse')selectBrowserTree(id,{fromMap:true});else {activateTree(id);if(walkingPreferences.autoCentreSelection)flyToVisible([treeById.get(id).lat,treeById.get(id).lng],19);}},
+    onTreePreview:id=>activateTree(id),
+    onMapClick:handleFeaturelessMapClick,
+    getLabelObstacles:getMapLabelObstacles,
+    getTreeStats:(tree,stop)=>typeof treeMarkerStats==='function'?treeMarkerStats(tree,stop):[],
+    getTreePreview:tree=>typeof treePreviewImage==='function'?treePreviewImage(tree):null
 });
 const map=mapView.map;
-function getCampusBounds(){const b=calcBounds();return [[b[0][1],b[0][0]],[b[1][1],b[1][0]]];}
+function getCampusBounds(){
+    if(mapView.boundary)return CampusScene.expandedBounds(mapView.boundary,2);
+    const b=calcBounds();return [[b[0][1],b[0][0]],[b[1][1],b[1][0]]];
+}
+function getMapLabelObstacles(){
+    const origin=document.getElementById('map').getBoundingClientRect();
+    return [...document.querySelectorAll('#ui-panel,#map-tools,#walk-menu,.map-controls button,#app-status')]
+        .filter(el=>el.getClientRects().length&&getComputedStyle(el).visibility!=='hidden')
+        .map(el=>{const r=el.getBoundingClientRect();return {left:r.left-origin.left,right:r.right-origin.left,top:r.top-origin.top,bottom:r.bottom-origin.top};});
+}
 map?.setMaxBounds(getCampusBounds());
-window.addEventListener('resize',()=>map?.setMaxBounds(getCampusBounds()),{passive:true});
+mapView.boundaryReady?.then(()=>{if(mapView.boundary)map?.setMaxBounds(getCampusBounds());});
 function getMapPadding(){
-    const panel=uiPanel.getBoundingClientRect(),rem=parseFloat(getComputedStyle(document.documentElement).fontSize);
-    const h=window.visualViewport?.height||innerHeight;
-    return isSheetLayout()?{top:rem,right:rem,bottom:Math.min(panel.height+rem,h-rem*2),left:rem}:{top:rem,right:rem,bottom:rem,left:panel.right+rem};
+    const rem=parseFloat(getComputedStyle(document.documentElement).fontSize),v=window.visualViewport;
+    const viewport=document.getElementById('map').getBoundingClientRect(),w=viewport.width,h=viewport.height;
+    const padding={top:Math.max(rem,(v?.offsetTop||0)-viewport.top),right:Math.max(rem,viewport.right-((v?.offsetLeft||0)+(v?.width||w))),bottom:Math.max(rem,viewport.bottom-((v?.offsetTop||0)+(v?.height||h))),left:Math.max(rem,(v?.offsetLeft||0)-viewport.left)};
+    const inspector=document.getElementById('map-tools'),overlay=inspector.hidden?uiPanel:inspector;
+    if(getComputedStyle(overlay).visibility!=='hidden'){
+        const r=overlay.getBoundingClientRect();
+        const bottomPanel=overlay===inspector?inspector.dataset.placement!=='side':isSheetLayout();
+        if(bottomPanel)padding.bottom=Math.max(padding.bottom,h-(r.top-viewport.top)+rem);
+        else if((r.left+r.right)/2<viewport.left+w/2)padding.left=Math.max(rem,r.right-viewport.left+rem);
+        else padding.right=Math.max(rem,viewport.right-r.left+rem);
+    }
+    // Keep a non-empty camera viewport at very large text sizes.
+    for(const [a,b,size]of [['left','right',w],['top','bottom',h]]){
+        const total=padding[a]+padding[b],limit=Math.max(0,size-1);
+        if(total>limit){padding[a]*=limit/total;padding[b]*=limit/total;}
+    }
+    const buttons=[...document.querySelectorAll('.map-controls button')].filter(el=>el.getClientRects().length);
+    const menu=document.getElementById('walk-menu');if(!menu.hidden)buttons.push(menu);
+    const obstacles=buttons.map(el=>{const r=el.getBoundingClientRect();return {left:r.left-viewport.left,right:r.right-viewport.left,top:r.top-viewport.top,bottom:r.bottom-viewport.top};});
+    const free=CampusMap.unobstructedViewport({left:padding.left,right:w-padding.right,top:padding.top,bottom:h-padding.bottom},obstacles,rem*.5);
+    if(free)Object.assign(padding,{left:free.left,right:w-free.right,top:free.top,bottom:h-free.bottom});
+    return Object.fromEntries(Object.entries(padding).map(([key,value])=>[key,Math.round(value)]));
 }
 function flyToVisible(latlng,zoom,options={}){mapView.focus(latlng,zoom??mapView.getZoom(),getMapPadding(),options);}
 function fitHomeView(options={}){mapView.fitBounds(getWalkBounds(),getMapPadding(),options);}
@@ -587,8 +646,6 @@ function saveCustomSettings() {
 }
 
 function syncCustomSettingsUI() {
-    const panel = document.getElementById('custom-panel');
-    const toggle = document.getElementById('custom-toggle');
     const haptics = document.getElementById('custom-haptics');
     const repeatPaths = document.getElementById('custom-repeat-paths');
     const nearbyLabels = document.getElementById('custom-nearby-labels');
@@ -597,7 +654,6 @@ function syncCustomSettingsUI() {
     if (repeatPaths) repeatPaths.checked = customSettings.repeatPaths;
     if (nearbyLabels) nearbyLabels.checked = customSettings.nearbyLabels;
     if (campusPaths) campusPaths.checked = customSettings.campusPaths;
-    if (toggle && panel) {toggle.classList.toggle('active', panel.classList.contains('show'));toggle.setAttribute('aria-expanded',String(panel.classList.contains('show')));}
 }
 
 function syncCampusPathsLayer(){mapView.setPathsVisible(customSettings.campusPaths);}
@@ -605,21 +661,6 @@ function bindCustomSettings() {
     loadCustomSettings();
     syncCustomSettingsUI();
     syncCampusPathsLayer();
-
-    const panel = document.getElementById('custom-panel');
-    const toggle = document.getElementById('custom-toggle');
-    toggle?.addEventListener('click', () => {
-        if(walk.status==='active')return;
-        if(panel?.classList.contains('show')){panel.classList.remove('show');syncCustomSettingsUI();}
-        else openSettings(toggle);
-    });
-    document.addEventListener('pointerdown', event => {
-        if (!panel?.classList.contains('show')) return;
-        const target = event.target;
-        if (panel.contains(target) || toggle?.contains(target)) return;
-        panel.classList.remove('show');
-        syncCustomSettingsUI();
-    });
 
     [
         ['custom-haptics', 'haptics'],
@@ -638,8 +679,7 @@ function bindCustomSettings() {
     });
 
     document.getElementById('custom-welcome')?.addEventListener('click', () => {
-        panel?.classList.remove('show');
-        syncCustomSettingsUI();
+        closeUtility();
         openAboutModal();
     });
 }
@@ -926,29 +966,28 @@ function getMoreInfoHTML(tree, alaURL) {
         { label: 'Search ALA', url: alaURL }
     ];
     if (!links.length) return '';
-    return `
-        <div class="more-info">
-            <span class="more-info-title">More Info</span>
-            <div class="more-info-links">
-                ${links.map(link => `
-                    <a class="more-info-link" href="${escapeHTML(link.url)}" target="_blank" rel="noopener noreferrer">
-                        ${escapeHTML(link.label)} <i class="bi bi-box-arrow-up-right"></i>
-                    </a>
-                `).join('')}
-            </div>
-        </div>
-    `;
+    return `<div class="plant-resource-list">${links.map(link=>{
+        const meta=plantResourceMeta(link.label);
+        return `<a class="plant-resource" href="${escapeHTML(link.url)}" target="_blank" rel="noopener noreferrer"><i class="bi bi-${meta.icon} resource-icon" aria-hidden="true"></i><span><strong>${escapeHTML(link.label)}</strong>${meta.description?`<small>${escapeHTML(meta.description)}</small>`:''}</span><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span class="sr-only">Opens in a new tab</span></a>`;
+    }).join('')}</div>`;
 }
 
 // ── HTML Injector for Dedicated Detail View ──
 function getDetailsHTML(tree){
     const idx=currentRoute.findIndex(t=>t.id===tree.id);
-    const image=tree.img?`<button class="popup-img-wrap" onclick="openLightbox(treeById.get(${tree.id}).img)" aria-label="Enlarge ${escapeHTML(tree.name)} poster">${treeImageHTML(tree,'detail')}</button>`:'';
-    return `<article class="detail-card"><div class="detail-head"><div><h2 class="detail-title">${escapeHTML(tree.name)}</h2><div class="detail-sci">${escapeHTML(tree.scientific)}</div></div><span class="detail-badge">${idx>=0?`Stop ${idx+1}`:'Explore'}</span></div>
-        ${image}<section class="feature-info"><h3 class="about-title">ABOUT</h3><div class="about-row"><span class="about-key">Family</span><span class="about-value">${escapeHTML(tree.family)}</span></div><div class="about-row"><span class="about-key">Features</span><span class="about-value">${escapeHTML(tree.features)}</span></div></section>
-        ${getMoreInfoHTML(tree,`https://bie.ala.org.au/search?q=${encodeURIComponent(tree.scientific)}`)}
-        <div class="detail-actions"><button class="text-btn symbol-action" onclick="findTreeOnMap(${tree.id})" aria-label="Find this tree on map" title="Find on map">${actionHTML('geo-alt','Map')}</button><button class="text-btn symbol-action" onclick="adjacentTree(-1)" aria-label="Previous tree" title="Previous tree" ${idx===0?'disabled':''}>${actionHTML('arrow-left','Previous')}</button><button class="text-btn symbol-action" onclick="adjacentTree(1)" aria-label="Next tree" title="Next tree" ${idx===currentRoute.length-1?'disabled':''}>${actionHTML('arrow-right','Next')}</button></div>
-        <div class="popup-btns"><button class="pb pb-visit" id="bv-${tree.id}">Mark as Visited</button></div></article>`;
+    const navigation=idx>=0?currentRoute:treeData,navIndex=navigation.findIndex(t=>t.id===tree.id);
+    const gallery=treeGalleryHTML(tree);
+    return `<article class="detail-card"><div class="detail-scroll"><div class="tree-hero${gallery?'':' without-image'}${treeGalleryItems(tree).length>1?' has-pagination':''}">${gallery}<div class="detail-head"><div><h2 class="detail-title">${escapeHTML(tree.name)}</h2><div class="detail-sci">${escapeHTML(tree.scientific)}</div></div><span class="detail-badge">${idx>=0?`Stop ${idx+1}`:'Explore'}</span></div></div>
+        <div class="plant-tabs" role="tablist" aria-label="Plant information">
+            <button type="button" id="plant-tab-overview" role="tab" aria-label="Overview" title="Overview" aria-selected="${treeDetailTab==='overview'}" aria-controls="plant-overview" tabindex="${treeDetailTab==='overview'?0:-1}" onclick="selectPlantTab('overview')" onkeydown="plantTabKeydown(event)">${actionHTML('book','Overview')}</button>
+            <button type="button" id="plant-tab-resources" role="tab" aria-label="Plant resources" title="Plant resources" aria-selected="${treeDetailTab==='resources'}" aria-controls="plant-resources" tabindex="${treeDetailTab==='resources'?0:-1}" onclick="selectPlantTab('resources')" onkeydown="plantTabKeydown(event)">${actionHTML('link-45deg','Plant resources')}</button>
+        </div>
+        <section id="plant-overview" class="plant-tab-panel" role="tabpanel" aria-labelledby="plant-tab-overview" tabindex="0" ${treeDetailTab==='overview'?'':'hidden'}>
+            <section class="tree-family"><h3>${actionHTML('flower1','Family')}</h3><p class="about-value">${escapeHTML(tree.family)}</p></section>
+            <section class="feature-info"><h3 class="about-title">${actionHTML('list-ul','Identifying features')}</h3><p class="about-value identifying-features">${escapeHTML(tree.features)}</p></section>
+        </section>
+        <section id="plant-resources" class="plant-tab-panel" role="tabpanel" aria-labelledby="plant-tab-resources" tabindex="0" ${treeDetailTab==='resources'?'':'hidden'}>${getMoreInfoHTML(tree,`https://bie.ala.org.au/search?q=${encodeURIComponent(tree.scientific)}`)}</section></div>
+        <div class="detail-actions detail-footer"><button class="text-btn symbol-action detail-map" onclick="findTreeOnMap(${tree.id})" aria-label="Find this tree on map" title="Find on map">${actionHTML('map','Map')}</button><div class="popup-btns"><button class="pb pb-visit" id="bv-${tree.id}">Mark as Visited</button></div><div class="tree-stepper" role="group" aria-label="Explore trees"><button class="text-btn symbol-action" onclick="adjacentTree(-1)" aria-label="Previous tree" title="Previous tree" ${navIndex===0?'disabled':''}>${actionHTML('arrow-left','Previous')}</button><button class="text-btn symbol-action" onclick="adjacentTree(1)" aria-label="Next tree" title="Next tree" ${navIndex===navigation.length-1?'disabled':''}>${actionHTML('arrow-right','Next')}</button></div></div></article>`;
 }
 
 function buildMapMarkers(){mapView.setTrees(treeData);treeData.forEach(tree=>updateMarkerStyle(tree.id));}
@@ -1077,7 +1116,7 @@ const detailMiniCoords = document.getElementById('detail-mini-coords');
 function updateDetailMiniCoords(tree) {
     if (!detailMiniCoords || !tree) return;
     const leg = walkingLeg(walkOrigin(),tree);
-    detailMiniCoords.innerHTML = userLoc&&userLoc.accuracy<=50 ? symbolMetric(leg.network?'signpost-split':'arrow-up-right',formatDistance(leg.distance),`${formatDistance(leg.distance)} ${leg.network?'via paths':'direct estimate'}`) : actionHTML(userLoc?'exclamation-triangle':'geo-alt',userLoc?'Weak GPS':'GPS off');
+    detailMiniCoords.innerHTML = userLoc&&userLoc.accuracy<=50 ? symbolMetric('footprints',formatDistance(leg.distance),`${formatDistance(leg.distance)} ${leg.network?'via paths':'direct estimate'}`) : actionHTML(userLoc?'exclamation-triangle':'geo-alt',userLoc?'Weak GPS':'GPS off');
     detailMiniCoords.title=userLoc&&userLoc.accuracy<=50?'Walking distance from your location.':userLoc?'Waiting for accurate GPS.':'Enable location to see distance from you.';
 }
 function fitDetailSheetToContent() { if(isSheetLayout())setSheetState('expanded'); }
@@ -1110,18 +1149,19 @@ function updateDetailVisitButton(id) {
         ? actionHTML('arrow-counterclockwise','Undo visit')
         : actionHTML('check2-circle','Mark visited');
     btn.setAttribute('aria-label',isVisited?'Mark this tree unvisited':'Mark this tree visited');
+    btn.title=isVisited?'Mark this tree unvisited':'Mark this tree visited';
 }
 
 function renderSidebar() { renderTreeCards(); updateProgress(); }
 
 stopsList.addEventListener('click', event => {
-    const card = event.target.closest('.tree-card');
+    const card = event.target.closest('.tree-card')||event.target.closest('.tree-row')?.querySelector('.tree-card');
     if (!card) return;
     const id = Number(card.dataset.treeId);
     const tree = treeById.get(id);
     if (!tree) return;
-    activateTree(id);
-    flyToVisible([tree.lat, tree.lng], 19, {animate: motionOK(), duration: 0.4});
+    if(event.target.closest('[data-tree-details]'))activateTree(id);
+    else selectBrowserTree(id);
 });
 
 function activateTree(id, options = {}) {
@@ -1133,6 +1173,7 @@ function activateTree(id, options = {}) {
     applyWalkView();
     updateNavigation();
     const prevActiveId = activeTreeId;
+    if(prevActiveId!==id){treeDetailTab='overview';detailGalleryIndex=0;}
     activeTreeId = id;
     activeTree = treeById.get(id) || null;
     
@@ -1180,7 +1221,6 @@ window.backToList = () => {
 
 function handleFeaturelessMapClick(){
     closeUtility();
-    document.getElementById('custom-panel')?.classList.remove('show');syncCustomSettingsUI();
 }
 
 // ── 7. LIGHTBOX ──────────────────────────────────────────────
@@ -1273,6 +1313,7 @@ document.addEventListener('keydown', event => {
 });
 
 document.getElementById('home-view').addEventListener('click', () => {
+    pauseFollow();
     fitHomeView({animate: motionOK(), duration: 0.4, maxZoom: 18});
 });
 

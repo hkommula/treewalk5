@@ -8,7 +8,7 @@ c.on('Network.responseReceived',({response})=>{
     if(response.url.startsWith('http://127.0.0.1:8765/'))localRequests.add(decodeURI(response.url));
     if(response.status>=400)networkErrors.push({url:response.url,status:response.status});
 });
-c.on('Log.entryAdded',({entry})=>{if(entry.level==='error')logs.push(entry.text);});
+c.on('Log.entryAdded',({entry})=>{if(entry.level==='error')logs.push({text:entry.text,url:entry.url});});
 await c.call('Network.enable');await c.call('Log.enable');
 const settle=()=>c.evaluate('new Promise(r=>setTimeout(r,350))');
 const capture=async name=>writeFile(`.qa/midnight-${name}.png`,Buffer.from((await c.call('Page.captureScreenshot',{format:'png'})).data,'base64'));
@@ -20,13 +20,8 @@ try{
     await c.waitFor('typeof walkingReady!=="undefined"&&walkingReady&&mapView.ready&&map.getLayer("uow-buildings-fill")',30000);
     await c.call('Page.removeScriptToEvaluateOnNewDocument',{identifier:clear.identifier});
     await c.evaluate('document.fonts.ready.then(()=>true)');
-    await c.waitFor('document.querySelector(".maplibregl-ctrl-attrib").dataset.initialised');
-    await c.evaluate('document.querySelector(".maplibregl-ctrl-attrib-button").focus();');
-    for(const [key,code,virtual,expected] of [['Enter','Enter',13,true],[' ','Space',32,false]]){
-        await c.call('Input.dispatchKeyEvent',{type:'keyDown',key,code,windowsVirtualKeyCode:virtual,text:key==='Enter'?'\r':' '});
-        await c.call('Input.dispatchKeyEvent',{type:'keyUp',key,code,windowsVirtualKeyCode:virtual});
-        assert.equal(await c.evaluate('document.querySelector(".maplibregl-ctrl-attrib").classList.contains("maplibregl-compact-show")'),expected,'native attribution keyboard toggle');
-    }
+    await c.waitFor('document.querySelector("#map-attribution-content .maplibregl-ctrl-attrib-inner")?.dataset.initialised');
+    assert.equal(await c.evaluate('!!document.querySelector(".maplibregl-ctrl-attrib-button")'),false);
     await c.evaluate('dragHandleContainer.focus();');
     await c.call('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowUp',code:'ArrowUp',windowsVirtualKeyCode:38});
     assert.equal(await c.evaluate('sheetState'),'expanded');
@@ -71,8 +66,8 @@ try{
             assert.deepEqual(await c.evaluate(`([...document.querySelectorAll('button')].filter(b=>b.getClientRects().length&&!b.textContent.trim()&&!b.getAttribute('aria-label')&&!b.title&&!b.querySelector('img[alt]')).map(b=>b.id||b.className))`),[],`${view}: icon controls need accessible names`);
             assert.deepEqual(await c.evaluate(`([...document.querySelectorAll('i.bi')].filter(i=>i.getClientRects().length&&getComputedStyle(i,'::before').content==='none').map(i=>i.className))`),[],`${view}: icon glyphs must exist`);
         }
-        await c.evaluate('showHome();document.getElementById("custom-toggle").click();');await settle();
-        const settings=await c.evaluate('(()=>{const r=document.getElementById("custom-panel").getBoundingClientRect();return {left:r.left,right:r.right,bottom:r.bottom,top:r.top,w:innerWidth,h:visualViewport.height};})()');
+        await c.evaluate('showHome();document.getElementById("map-tools-toggle").click();');await settle();
+        const settings=await c.evaluate('(()=>{const r=document.getElementById("map-tools").getBoundingClientRect();return {left:r.left,right:r.right,bottom:r.bottom,top:r.top,w:innerWidth,h:visualViewport.height};})()');
         assert.ok(settings.left>=0&&settings.right<=settings.w+1&&settings.top>=0&&settings.bottom<=settings.h+1,`Settings ${width}x${height}`);
         await c.evaluate('document.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape"}));');
     }
@@ -90,7 +85,7 @@ try{
     const manifest=JSON.parse(await readFile('photos/optimized/manifest.json','utf8'));
     assert.equal(Object.keys(manifest).length,49);
     let assets=0;for(const [original,variants] of Object.entries(manifest)){
-        await access(original);for(const size of ['160','320','640','1280','photo160','photo320']){await access(variants[size]);assets++;}
+        await access(original);for(const size of ['160','320','640','1280','photo160','photo320','photo640']){await access(variants[size]);assets++;}
     }
     console.log(`${layouts} layouts across five views, four 200% text layouts, visible controls/settings, live 3D, lazy aerial buildings and ${assets} image assets passed.`);
     console.log('No JavaScript/console/HTTP errors or local-building requests. Visuals saved in .qa/midnight-*.png.');

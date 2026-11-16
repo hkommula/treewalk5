@@ -12,7 +12,25 @@ export async function connectBrowser(){
             listeners.get(message.method)?.(message.params);
         }
     });
-    const call=(method,params={})=>new Promise((resolve,reject)=>{const id=++sequence;pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params}));});
+    const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++sequence;pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params}));});
+    const call=async(method,params={})=>{
+        if(!['Page.navigate','Page.reload'].includes(method))return send(method,params);
+        // Page.navigate resolves before the new document commits. Without this
+        // boundary, readiness checks can accidentally inspect the previous app.
+        const token=`navigation-${Date.now()}-${sequence}`;
+        await send('Runtime.evaluate',{expression:`window.__cdpNavigationToken=${JSON.stringify(token)}`});
+        const result=await send(method,params);
+        if(result.errorText)throw Error(result.errorText);
+        const start=Date.now();
+        while(Date.now()-start<30000){
+            try{
+                const state=await send('Runtime.evaluate',{expression:`window.__cdpNavigationToken!==${JSON.stringify(token)}&&document.readyState!=='loading'`,returnByValue:true});
+                if(state.result?.value===true)return result;
+            }catch(error){if(!/context|navigat/i.test(error.message))throw error;}
+            await new Promise(resolve=>setTimeout(resolve,50));
+        }
+        throw Error(`New document did not become ready after ${method}`);
+    };
     const evaluate=async expression=>{
         const result=await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});
         if(result.exceptionDetails)throw Error(JSON.stringify(result.exceptionDetails));

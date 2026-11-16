@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {writeFile,mkdir} from 'node:fs/promises';
 import {connectBrowser} from './cdp-client.mjs';
 const c=await connectBrowser();const {call,evaluate,waitFor}=c;
-const settle=()=>evaluate('new Promise(r=>setTimeout(r,400))');
+const settle=()=>evaluate('new Promise(r=>setTimeout(r,850))');
 const screenshot=async name=>writeFile(`.qa/${name}.png`,Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'));
 const waitMap=()=>waitFor('typeof walkingReady!=="undefined"&&walkingReady&&mapView.ready&&map&&map.getLayer("uow-tree-points")',30000);
 try{
@@ -24,14 +24,13 @@ try{
     assert.equal(await evaluate('window.__gps.starts'),0);
     assert.equal(await evaluate('treeData.length'),49);
     assert.equal(await evaluate('networkSegments.length'),923);
-    assert.equal(await evaluate('map.getLayer("uow-buildings-fill").source'),'openmaptiles');
-    assert.equal(await evaluate('!!map.getSource("uow-buildings")'),false,'no local building source');
+    await waitFor('mapView.boundary&&mapView.data.get("uow-buildings")?.data.features.length>0',60000);
+    assert.equal(await evaluate('map.getLayer("uow-buildings-fill").source'),'uow-buildings');
+    assert.equal(await evaluate('mapView.buildingVectorSource'),'openmaptiles','clipped geometry comes from the existing vector source');
     assert.equal(await evaluate('getComputedStyle(document.body).fontFamily.split(",")[0]'),'Montserrat');
-    await waitFor('document.querySelector(".maplibregl-ctrl-attrib").dataset.initialised');
-    assert.equal(await evaluate('document.querySelector(".maplibregl-ctrl-attrib").classList.contains("maplibregl-compact-show")'),false);
-    await evaluate('document.querySelector(".maplibregl-ctrl-attrib-button").click();');
-    assert.equal(await evaluate('document.querySelector(".maplibregl-ctrl-attrib").classList.contains("maplibregl-compact-show")'),true);
-    await evaluate('document.querySelector(".maplibregl-ctrl-attrib-button").click();');
+    await waitFor('document.querySelector("#map-attribution-content .maplibregl-ctrl-attrib-inner")?.dataset.initialised');
+    assert.equal(await evaluate('!!document.querySelector(".maplibregl-ctrl-attrib-button")'),false);
+    assert.ok(await evaluate('document.querySelector("#map-attribution-content").textContent.includes("OpenStreetMap")'));
     assert.equal(await evaluate('document.querySelectorAll(".maplibregl-canvas").length'),1);
     console.log('Phase 1: native map, GIS sources and renderer loaded');
 
@@ -89,9 +88,12 @@ try{
     await evaluate('openWalkingDetails();');await settle();
     assert.equal(await evaluate('document.body.classList.contains("tree-card-open")'),true);
     assert.equal(await evaluate('getComputedStyle(document.querySelector(".header-stats")).display'),'grid');
-    assert.equal(await evaluate('document.querySelectorAll(".about-row").length'),2);
+    assert.equal(await evaluate('document.querySelector(".identifying-features").textContent'),await evaluate('activeTree.features'));
+    assert.ok(await evaluate('document.querySelector(".tree-family").textContent.includes(activeTree.family)'));
+    assert.equal(await evaluate('document.querySelectorAll(".plant-tabs [role=tab]").length'),2);
     assert.equal(await evaluate('document.getElementById("detail-back").getAttribute("aria-label")'),'Back to walk');
     assert.equal(await evaluate('document.querySelector(".detail-badge").textContent'),await evaluate('`Stop ${currentRoute.findIndex(t=>t.id===activeTreeId)+1}`'));
+    await evaluate('if(document.querySelector(".popup-img-wrap").dataset.galleryKind!=="poster")stepTreeGallery(1)');
     await waitFor('document.querySelector(".popup-img-hi").complete&&document.querySelector(".popup-img-hi").naturalWidth');
     assert.ok(await evaluate('(()=>{const img=document.querySelector(".popup-img-hi");return getComputedStyle(img).objectFit==="contain"&&Math.abs(img.clientWidth/img.clientHeight-img.naturalWidth/img.naturalHeight)<.03;})()'));
     await evaluate('openLightbox(imageVariant(activeTree,"640"));');
@@ -111,7 +113,7 @@ try{
     console.log('Phase 3: original card structure, poster ratio, route badge and browsing passed');
 
     await evaluate('pauseFollow();mapView.set3D(true,false);');
-    assert.equal(await evaluate('map.getPitch()'),48);
+    assert.equal(await evaluate('map.getPitch()'),45);
     assert.equal(await evaluate('map.getLayoutProperty("uow-buildings-3d","visibility")'),'visible');
     assert.equal(await evaluate('map.getLayoutProperty("uow-buildings-fill","visibility")'),'none');
     assert.equal(await evaluate('map.getStyle().layers.filter(l=>l.type==="fill-extrusion").length'),1);
@@ -163,7 +165,9 @@ try{
     for(let width=320;width<=900;width+=17){
         await call('Emulation.setDeviceMetricsOverride',{width,height:640,deviceScaleFactor:1,mobile:true});
         await evaluate('new Promise(r=>setTimeout(r,25))');
-        assert.equal(await evaluate('document.documentElement.scrollWidth>document.documentElement.clientWidth'),false);layouts++;
+        const overflow=await evaluate('document.documentElement.scrollWidth>document.documentElement.clientWidth');
+        if(overflow)console.log(await evaluate('({width:innerWidth,client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,view:walkView,tools:!document.getElementById("map-tools").hidden,wide:[...document.body.querySelectorAll("*")].filter(el=>el.getBoundingClientRect().right>document.documentElement.clientWidth+1).slice(0,12).map(el=>({id:el.id,cls:String(el.className),right:el.getBoundingClientRect().right,width:el.getBoundingClientRect().width}))})'));
+        assert.equal(overflow,false,`fluid width ${width}`);layouts++;
     }
     await call('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
     await evaluate('document.documentElement.style.fontSize="200%";scheduleLayout();');await settle();
@@ -187,9 +191,10 @@ try{
     assert.ok(await evaluate('document.querySelector(".image-fallback")'));
     await evaluate('locationTracker._onLocationError({code:2,message:"Temporary unavailable"});void 0;');
     assert.equal(await evaluate('locationTracker.isTracking()'),true);
-    await evaluate('showBrowser();map.jumpTo({center:[UOW_CENTER[1],UOW_CENTER[0]],zoom:16,padding:{top:0,right:0,bottom:0,left:0}});void 0;');
+    await evaluate('showBrowser();');await settle();
+    await evaluate('map.jumpTo({center:[UOW_CENTER[1],UOW_CENTER[0]],zoom:16,padding:{top:0,right:0,bottom:0,left:0}});void 0;');
     await waitFor('map.queryRenderedFeatures({layers:["uow-clusters"]}).length>0');
-    await evaluate('const cluster=map.queryRenderedFeatures({layers:["uow-clusters"]})[0];mapView.handleClick({point:map.project(cluster.geometry.coordinates)});');await settle();
+    await evaluate('const cluster=map.queryRenderedFeatures({layers:["uow-clusters"]}).find(f=>mapView.hitFeatures(map.project(f.geometry.coordinates))[0]?.layer.id==="uow-clusters");if(!cluster)throw Error("No unobstructed cluster");mapView.handleClick({point:map.project(cluster.geometry.coordinates)});');await settle();
     assert.ok(await evaluate('map.getZoom()>16&&map.getZoom()<=19'));
     await evaluate('flyToVisible([treeData[0].lat,treeData[0].lng],19,{animate:false});');await settle();
     await evaluate('mapView.handleClick({point:map.project([treeData[0].lng,treeData[0].lat])});');
@@ -228,6 +233,7 @@ try{
     assert.equal(await evaluate('map'),null);
     assert.equal(await evaluate('document.getElementById("map-fallback").hidden'),false);
     await evaluate('showBrowser();');assert.equal(await evaluate('document.querySelectorAll(".tree-card").length'),49);
+    await evaluate('document.querySelector(".card-details").click()');assert.equal(await evaluate('walkView'),'detail','tree details remain reachable without the map');
     await call('Page.removeScriptToEvaluateOnNewDocument',{identifier:noGL.identifier});
     assert.equal(c.errors.length,0,JSON.stringify(c.errors));
     console.log('No-WebGL browsing fallback passed; no uncaught JavaScript exceptions');
